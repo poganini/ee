@@ -1,0 +1,160 @@
+<?php
+// version: 2.3
+// date: 2012-05-10
+
+global $Engine, $Auth, $EE;
+	
+$SCRIPTS = HTTP_COMMON_SCRIPTS;
+if(isset($MODULE_OUTPUT['scripts_mode'])) {
+	switch($MODULE_OUTPUT['scripts_mode']) {
+		case 'normal': {
+	$EE["head_extra5"][] = '
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			ModalEdit = function(module_id) {
+				$("a.modal_edit").click(function() {
+					var $this = $(this);
+					var param = $(this).attr("href").split("?");
+					var uri = param[0];
+					if(param[1] != null) {
+						param = param[1].split("&");
+						for(var i = 0; i < param.length; i++) {
+							param[i] = param[i].split("=");
+						}
+					}
+					if((param[0] != null && param[0][0] == "node" && param[0][1]) && (param[1] && param[1][0] == "action" && param[1][1] == "edit#form") && (param[2] && param[2][0] == "mode" && param[2][1] == "modal")) {
+						var request = {"module": module_id, "mode": "html_code", "params": param[3][1], "uri": uri, "node": param[0][1], "action": param[1][1], "item_id": param[3][1]};
+						$.ajax({
+							type: "POST",
+							url: "/ajax_mode/", 
+							data: request,
+							success: function( data ) {
+								//ui.item.find("em.load").css("display", "none");
+								$.fancybox({
+									content: data,
+									padding : 17,
+									margin : 40,
+									opacity : false,
+									modal : false,
+									cyclic : false,
+									scrolling : "auto",	// "auto", "yes" or "no"
+							
+									//width : 560,
+									//height : 340,
+									autoWidth: true,
+							
+									autoScale : true,
+									autoDimensions : true,
+									centerOnScroll : false,
+							
+									ajax : {},
+									swf : { wmode: "transparent" },
+							
+									hideOnOverlayClick : true,
+									hideOnContentClick : false,
+							
+									overlayShow : true,
+									overlayOpacity : 0.76,
+									overlayColor : "#000",
+							
+									titleShow : true,
+									titlePosition : "inside", // "float", "outside", "inside" or "over"
+									titleFormat : null,
+									titleFromAlt : false,
+							
+									transitionIn : "fade", // "elastic", "fade" or "none"
+									transitionOut : "fade", // "elastic", "fade" or "none"
+							
+									speedIn : 300,
+									speedOut : 300,
+							
+									changeSpeed : 300,
+									changeFade : "fast",
+							
+									easingIn : "swing",
+									easingOut : "swing",
+							
+									showCloseButton	 : false,
+									showNavArrows : true,
+									enableEscapeButton : true,
+									enableKeyboardNav : true,
+							
+									onStart : function(){},
+									onCancel : function(){},
+									onComplete : function(){
+										tinyMCE.init({
+											mode : "textareas",
+											editor_selector : "wysiwyg",
+											theme : "advanced",
+											elements : "ajaxfilemanager",
+											convert_urls: false,
+											language: "ru",
+											width: "100%",
+											plugins : "fullscreen,table,advimage,advlink,media,contextmenu,paste,template,inlinepopups",
+											theme_advanced_buttons2_add : "media,liststyle,fullscreen, pasteword",
+											theme_advanced_buttons3_add : "tablecontrols,|emotions,images,|,template",
+											theme_advanced_toolbar_location : "top",
+											theme_advanced_toolbar_align : "left",
+											theme_advanced_statusbar_location : "bottom",
+											theme_advanced_resizing : true,
+								
+											skin : "o2k7",
+											skin_variant : "silver",
+								
+											content_css: "' . $EE["http_styles"] . 'screen-tinymce.css?1",
+								
+											plugin_insertdate_dateFormat : "%d.%m.%Y",
+											plugin_insertdate_timeFormat : "%H:%M:%S",
+											template_external_list_url : "js/template_list.js",
+											external_link_list_url : "js/link_list.js",
+											external_image_list_url : "js/image_list.js",
+											media_external_list_url : "js/media_list.js",
+											file_browser_callback : "ajaxfilemanager",
+									
+											theme_advanced_resize_horizontal : true,
+											apply_source_formatting : true,
+											template_replace_values : {
+												username : "Some User",
+												staffid : "991234"
+											},
+											style_formats : [
+												{title: "Большой заголовок", block: "p", classes: "font_big_head" },
+												{title: "Мелкий текст", inline: "span", classes: "font_mini", split: false},
+												{title: "Бардовый разделитель", selector: "hr", classes: "sub_hr"},
+												{title: "ФИО", selector: "p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,span,strong,img,table,a,hr", classes: "name-color"},
+												{title: "Картинка слева", selector: "p,img,hr", classes: "float-right"},
+												{title: "Картинка справа", selector: "p,img,hr", classes: "float-left"},
+												{title: "Серый блок", selector: "p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,span,strong,img,table,a", classes: "gray-radius-block"},
+											],
+											template_templates: [
+												{title: "Карточка персоны", src: "/themes/template/person_card.html", description: "Карточка с выравниванием картинки по левой стороне"}
+											]
+										});
+										$.fancybox.center();
+										
+										$("#fancybox-outer .mceResize").live("mousedown",function() {
+											$("#fancybox-outer .mceResize").live("mouseup",function() {
+												$.fancybox.center();
+											});
+										});				
+									},
+									onCleanup : function(){},
+									onClosed : function(){},
+									onError : function(){}
+								});
+							}
+						});
+					} else {
+						
+					}
+					return false;
+				});
+			};
+			ModalEdit('.$MODULE_OUTPUT['module_id'].');
+		});
+	</script>';
+		}
+		break;
+	}
+}
+?>

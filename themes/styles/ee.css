@@ -1,0 +1,148 @@
+/* Общие стили движка EE */
+/* Общее */
+.float-left {
+	float: left;
+    margin-right: 1em;
+}
+.pusher {
+	clear: both;
+}
+.inline-block {
+	display: -moz-inline-stack; 
+	display: inline-block; 
+	vertical-align: top;
+}
+.ie7 .inline-block,
+.ie6 .inline-block {
+	display: inline;
+	zoom: 1;
+}
+.no_marker {
+	list-style: none;
+}	
+
+/* Сообщения системы */
+.message {
+    font-weight: bold;
+	
+}
+.red {
+    color: #ff0000;
+}
+
+/* Формы */
+.input_long, .text {
+	width: 300px;
+}
+select {
+	margin: 3px 0; max-width: 600px
+}
+.select_long {
+	width: 400px;
+}
+
+/* Дублирующая навигация */
+#footsteps {
+	padding-bottom: 1em;
+}
+
+/* Обратная связь */
+.gorod {
+	display: none;
+}
+.pointer {
+	cursor: pointer;
+}
+
+/* Фреймы для кроссдоменной авторизации */
+.in_frame {
+	width: 0;
+	height: 0;
+	display: none;
+}
+/*----------------------------------------------------------------------------*/
+body .EEngine .form-notes {
+	line-height: 26px;
+}
+body .EEngine .notes_column {
+	float: left;
+	width: 50%;
+	padding: 0;
+	margin: 0;
+}
+body .EEngine .wide select {
+	max-width: 90%;
+}
+/*-------------------------------EStructure-----------------------------------*/
+.folders_list {
+	
+}
+	.folders_list ul {
+		position: relative;
+		overflow: hidden;
+		padding: 9px 0 9px 30px;
+	}
+		.folders_list li {
+			position: relative;
+			margin: 8px 0 0 0;
+			padding: 0 0 0 0;
+		}
+		.folders_list li:first-child {
+			margin: 0;
+		}
+			.folders_list .slide_botton {
+				position: absolute;
+				top: 3px;
+				/*left: -16px;*/
+				left: 0;
+				font-size: 0;
+				line-height: 0;
+				border-left: 5px transparent solid;
+				border-right: 5px transparent solid;
+				border-top: 10px #5e130c solid;
+				opacity: 0.90;
+				-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=90)";  
+				filter: progid:DXImageTransform.Microsoft.Alpha(opacity=90);
+				cursor: pointer;
+				vertical-align: middle;
+			}
+			.folders_list .slide_botton.close {
+				border-top: none;
+				border-bottom: 10px #5e130c solid;
+			}
+			.folders_list .folder_title {
+				overflow: hidden;
+				display: inline;
+			}		
+		.folders_list li.no_marker {
+			margin-left: -16px;
+			padding-left: 16px;
+		}
+		.folders_list li .slide_botton {
+			display: none;
+		}
+		.folders_list li.no_marker > .slide_botton {
+			display: block;
+		}
+		.folders_list li.one_child > .folder_title .pos_move {
+			display: none;
+		}
+			.folders_list li > .folder_title .pos_move a {
+				margin: 0 1px;
+			}
+			.folders_list li.first_child > .folder_title .pos_move .posup,
+			.folders_list li.last_child > .folder_title .pos_move .posdown {
+				display: none;
+			}
+			
+		.folders_list li > .folder_title .show_folder,
+		.folders_list li.inactive > .folder_title .hide_folder {
+			display: none;
+		}
+		.folders_list li.inactive > .folder_title .show_folder {
+			display: inline;
+		}
+		.folders_list li.inactive > .folder_title .foldet_name {
+			color: gray;
+		}
+/*----------------------------------------------------------------------------*/

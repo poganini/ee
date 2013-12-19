@@ -1,0 +1,683 @@
+<?php
+// version: 3.9
+// date: 2012-05-10
+global $Engine, $Auth, $EE;
+
+$SCRIPTS = HTTP_COMMON_SCRIPTS;
+if(isset($MODULE_OUTPUT['scripts_mode'])) {
+	switch($MODULE_OUTPUT['scripts_mode']) {
+		/*case 'none': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			
+		});
+	</script>
+END;
+		}
+		break;*/
+	
+		default: {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		DefaultStructure = function(moduleId,ajaxAllowed,unqueriedUri,nodeId,moduleItemsHandle) {
+			var curKeynum;
+			var shiftKeyPressed = false;
+			var adl = '<input name="'+nodeId+'[add][texter]" type="checkbox" checked="checked" value="on" /> Текстовый блок<br />';
+			if(!moduleItemsHandle) {
+				adl = '';
+			};
+	
+			setCurKeynum = function(e) {
+				curKeynum = window.event ? e.keyCode : e.which;
+			};
+			
+			check_for_shift = function(e) {
+				keynum = window.event ? e.keyCode : e.which;
+				if (keynum == 16) 
+					shiftKeyPressed = true;
+			}
+	
+		
+			fill_uripart = function(e, title, id) {
+				var latinizedSymbs = {'а':'a', 'б':'b', 'в':'v', 'г':'g', 'д':'d', 'е':'e', 'ё':'yo', 'ж':'zh', 'з':'z',
+					'и':'i', 'й':'j', 'к':'k', 'л':'l', 'м':'m', 'н':'n', 'о':'o', 'п':'p', 'р':'r', 'с':'s',
+					'т':'t', 'у':'u', 'ф':'f', 'х':'kh', 'ц':'c', 'ч':'ch', 'ш':'sh', 'щ':'sch', 'ъ':'', 'ы':'y', 
+					'ь':'', 'э':'e', 'ю':'yu', 'я':'ya', ' ':'-', '-':'-', '_':'_', '0':'0', '1':'1', '2':'2',
+					'3':'3', '4':'4', '5':'5', '6':'6', '7':'7', '8':'8', '9':'9', 'a':'a', 'b':'b', 'c': 'c',
+					'd':'d', 'e':'e', 'f':'f', 'g':'g', 'h':'h', 'i':'i', 'j':'j', 'k':'k', 'l':'l', 'm':'m',
+					'n':'n', 'o':'o', 'p':'p', 'q':'q', 'r':'r', 's':'s', 't':'t', 'u':'u', 'v':'v', 'w':'w', 'x':'x', 'y':'y', 'z':'z'};
+			
+				var keynum = window.event ? e.keyCode : e.which;
+				var keychar = String.fromCharCode(curKeynum).toLowerCase();
+				
+				var curLetter = '';
+				if (latinizedSymbs[keychar] || keynum==8 || keynum==46 || (keynum == 45 && shiftKeyPressed)) {
+					if (shiftKeyPressed)  shiftKeyPressed = false;
+					document.getElementById('add_folder_uripart_'+id).value = '';
+					for(i=0; i<  title.length; i++) {
+						curLetter = title[i].toLowerCase() ? title[i].toLowerCase() : title[i];
+						document.getElementById('add_folder_uripart_'+id).value += latinizedSymbs[curLetter] ? latinizedSymbs[curLetter] : '';
+					};
+				};
+			};
+		
+			del = function(id,pid) {	
+				if (id)	{
+					if(confirm("Действительно желаете удалить?")) {
+						if(ajaxAllowed) {
+							var request = {'module': moduleId, 'mode': 'html_code', 'params': ';ajax_del_folder', 'unassign_data': {'id': id,'pid':pid} };
+							jQuery.ajax({
+								type: 'POST',
+								url: '/ajax_mode/', 
+								data: request,
+								success: function( data ) {
+									if(pid != 0) {
+										if(jQuery('#folder_'+pid+'>ul>li').length > 1) {
+											jQuery('#folder_'+id).remove();
+										} else {
+											if(jQuery('#folder_'+pid+'>ul>li').length == 1) {
+												jQuery('#folder_'+pid+'>ul').remove();
+												jQuery('#folder_'+pid).removeClass('no_marker');
+											};
+										};
+									} else {
+										jQuery('#folder_'+id).remove();
+									};
+									SetPosClass(pid);
+								}
+							});
+						};
+					} else {
+						return false;
+					};
+				} else {
+					alert("Нельзя удалять главную страницу!");
+				};
+				return false;
+			};
+		
+			open_folders = function() {
+				get = new String(window.location);
+				x = get.indexOf('?');
+			
+				if (x!=-1) {
+					l = get.length;
+				
+					get = get.substr(x+1, l-x);
+					l = get.split('&');
+					x = 0;
+				
+					for(i in l) {
+						get = l[i].split('=');
+						show_folders(get[1], 1);
+						x++;
+					};
+				};
+			};
+				
+			add = function(id) { 
+				layer = document.getElementById('add' + id)
+				if(layer.style.display == 'block') {
+					layer.style.display = 'none';
+				} else {
+					add_block = '<form action=unqueriedUri" method="post">' +
+						'<strong>Название<span class="obligatorily"> *</span>:</strong><br /><input id="add_folder_title" onkeydown=\"check_for_shift(event)\" onkeypress="setCurKeynum(event)" onkeyup="fill_uripart(event,this.value,'+id+')" name="'+nodeId+'[add][name]" class="input_long" type="text" /><br />' +
+						'<strong>Описание<span class="obligatorily"> *</span>:</strong><br /><input name="'+nodeId+'[add][descr]" class="input_long" type="text" /><br />' +
+						'<strong>Часть адреса<span class="obligatorily"> *</span>:</strong><br /><input id="add_folder_uripart_'+id+'" name="'+nodeId+'[add][uri_part]" class="input_long" type="text" /><br />' +
+						'<input name="'+nodeId+'[add][id]" type="hidden" value="' + id + '">' +
+						'<small>(часть пути в&nbsp;адресной строке браузера, допустимы: латинские буквы, цифры, дефис, знак подчёркивания)</small><br />' + adl +
+						'<input type="Submit" value="Добавить раздел" />' +
+						'</form>';
+					layer.innerHTML = add_block;
+					layer.style.display = "block";
+				};
+			};
+			/*---Расстановка классов при изменении структуры разделов---*/
+			SetPosClass = function(pid) {
+				if(pid != 0) {
+					jQuery('#folder_'+pid+'>ul>li').removeClass('last_child first_child one_child');
+					if(jQuery('#folder_'+pid+'>ul').length) {
+						if(jQuery('#folder_'+pid+'>ul>li').length > 1) {
+							jQuery('#folder_'+pid+'>ul>li:first-child').addClass('first_child');
+							jQuery('#folder_'+pid+'>ul>li:last-child').addClass('last_child');
+						} else {
+							jQuery('#folder_'+pid+'>ul>li').addClass('one_child');
+						}
+					}				
+				} else {
+					jQuery('#folder_'+pid).parent().find('>li').removeClass('last_child first_child one_child');
+					if(jQuery('#folder_'+pid).parent().find('>li').length > 1) {
+						jQuery('#folder_'+pid).parent().find('>li:first-child').addClass('first_child');
+						jQuery('#folder_'+pid).parent().find('>li:last-child').addClass('last_child');
+					} else {
+						jQuery('#folder_'+pid).parent().find('>li').addClass('one_child');
+					}
+				}
+			}
+			jQuery(document).ready(function($) {		
+			/*---прячем все разделы кроме отмеченных как открытые---*/
+				jQuery('.folders_list ul ul:not(.open_folder)').each(function() {
+					$(this).hide();
+				});
+			/*---Показать подразделы, если не подгруженны подгружаем---*/
+				var is_load = false;
+				jQuery('.folders_list .slide_botton').live('click',function(event) {
+					event = event || window.event;
+					var t = event.target || event.srcElement;
+					if(!is_load) {
+						if(jQuery(t).parent().find('>ul').length == 0) {
+							if(ajaxAllowed) {
+								var pid = $(t).parent().attr('id').split('_');
+								pid = pid[1];
+								is_load = true;
+								var request = {'module': moduleId, 'mode': 'html_code', 'params': ';ajax_get_folder', 'unassign_data': {'pid': pid} };
+								$.ajax({
+									type: 'POST',
+									url: '/ajax_mode/', 
+									data: request,
+									success: function( data ) {//alert(data);
+										is_load = false;
+										$(t).parent().append(data);
+										SetPosClass(pid);
+										var elemid = jQuery(t).parent().find('>ul');
+										if(jQuery(elemid).length) {
+											if(jQuery(elemid).is(':hidden')) {
+												jQuery(elemid).slideDown('slow');
+												$(t).addClass('close');
+											} else {
+												jQuery(elemid).slideUp('slow');
+												$(t).removeClass('close');
+											}
+										}
+									}
+								});
+							}
+						} else {
+							var elemid = jQuery(t).parent().find('>ul');
+							if(jQuery(elemid).length) {
+								if(jQuery(elemid).is(':hidden')) {
+									jQuery(elemid).slideDown('slow');
+									$(t).addClass('close');
+								} else {
+									jQuery(elemid).slideUp('slow');
+									$(t).removeClass('close');
+								}
+							}
+						}
+					}					
+				});
+			/*---Создание подраздела и добавление его в ДОМ---*/
+				if(ajaxAllowed) { 
+					jQuery('.folder_add form :submit').live('click',function() {
+						var form = $(this).parents('form');
+						var name = form.find('input[name="'+nodeId+'[add][name]"]').val();
+						var descr = form.find('input[name="'+nodeId+'[add][descr]"]').val();
+						var uripart = form.find('input[name="'+nodeId+'[add][uri_part]"]').val();
+						var pid = form.find('input[name="'+nodeId+'[add][id]"]').val();
+						var texter = form.find('input[name="'+nodeId+'[add][texter]"]').is(':checked') ? 1 : 0;
+						var request = {'module': moduleId, 'mode': 'html_code', 'params': ';ajax_add_folder', 'unassign_data': {'name': name,'descr': descr,'uripart': uripart,'pid': pid,'texter': texter} };
+						$.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							success: function( data ) {
+								if(pid != 0) {
+									if($('#folder_'+pid+'>ul').length) {
+										$('#folder_'+pid+'>ul').append(data);
+									} else {
+										$('#folder_'+pid).addClass('no_marker').append(data);
+									}
+								} else {
+									$('#folder_'+pid).parent().append(data);
+								}
+								SetPosClass(pid);
+								var elemid = $('#folder_'+pid+'>ul');
+								if(jQuery(elemid).length && jQuery(elemid).find('>li').length == 1) {
+									if(jQuery(elemid).is(':hidden')) {
+										jQuery(elemid).slideDown('slow');
+										$(t).addClass('close');
+									} else {
+										jQuery(elemid).slideUp('slow');
+										$(t).removeClass('close');
+									}
+								}
+							}
+						});
+						return false;
+					});
+				}
+			/*---Скрываем, показываем раздел---*/
+				if(ajaxAllowed) {
+					jQuery('.folders_list .hide_folder a, .folders_list .show_folder a').live('click',function() {
+						var id = $(this).attr('href').split('/');
+						var operation = '';
+						id = id[1];
+						if($(this).parent().hasClass('hide_folder')) {
+							operation = 'hide_folder';
+						} else if($(this).parent().hasClass('show_folder')) {
+							operation = 'show_folder';
+						}
+						
+						var request = {'module': moduleId, 'mode': 'html_code', 'params': ';ajax_hide_folder', 'unassign_data': {'id': id,'operation': operation} };
+						$.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							success: function( data ) {
+								if(!(!data || !data.documentElement)) {
+									var rootNodeName = data.documentElement.nodeName;
+									if(rootNodeName != 'parsererror') {
+										xmlDocElem = data.documentElement;
+										if(rootNodeName == 'hide_folder') {
+											var folder = xmlDocElem.getElementsByTagName('folder').item(0).firstChild.data;
+											var status = xmlDocElem.getElementsByTagName('status').item(0).firstChild.data;
+											
+											$('#folder_'+id+' .foldet_name').replaceWith(folder);
+											if(status == 1) {
+												$('#folder_'+id).removeClass('inactive');
+											} else if(status == 0) {
+												$('#folder_'+id).addClass('inactive');
+											}
+										}
+									}
+								}
+							}
+						});
+						return false;
+					});
+				}
+			/*---Меняем позицию раздела---*/
+				if(ajaxAllowed) {
+					jQuery('.folders_list li > .folder_title .pos_move a').live('click',function() {
+						var id = $(this).attr('href').split('/');
+						var operation = id[0];
+						id = id[1];
+						
+						var request = {'module': moduleId, 'mode': 'html_code', 'params': ';ajax_pos_folder', 'unassign_data': {'id': id,'operation': operation} };
+						$.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							success: function( data ) {
+								if(!(!data || !data.documentElement)) {
+									var rootNodeName = data.documentElement.nodeName;
+									if(rootNodeName != 'parsererror') {
+										xmlDocElem = data.documentElement;
+										if(rootNodeName == 'sort_folder') {
+											var from_id = xmlDocElem.getElementsByTagName('from_id').item(0).firstChild.data;
+											var to_id = xmlDocElem.getElementsByTagName('to_id').item(0).firstChild.data;
+											var pid = xmlDocElem.getElementsByTagName('pid').item(0).firstChild.data;
+											$('#folder_'+to_id).replaceWith($('#folder_'+from_id).replaceWith($('#folder_'+to_id).clone()));
+											SetPosClass(pid);
+										}
+									}
+								}
+							}
+						});
+						return false;
+					});
+				}
+			});
+		};
+	</script>
+END;
+		}
+		break;
+	}
+}
+	
+	/*if ($Engine->OperationAllowed(1, "module.items.handle", 0, $Auth->usergroup_id))
+		$adl = '<input name="'.$NODE_ID.'[add][texter]" type="checkbox" checked="checked" value="on" /> Текстовый блок<br />';
+	else
+		$adl = '';
+
+	//$EE["head_extra3"][] = "
+	$none = "
+	<script type='text/javascript'>
+		var curKeynum;
+	
+		function setCurKeynum(e) {
+			curKeynum = window.event ? e.keyCode : e.which;
+		}
+		
+		function check_for_shift(e) {
+			keynum = window.event ? e.keyCode : e.which;
+			alert(keynum);
+		}
+	
+		function fill_uripart(e, title, id) {
+			var latinizedSymbs = {'а':'a', 'б':'b', 'в':'v', 'г':'g', 'д':'d', 'е':'e', 'ё':'yo', 'ж':'zh', 'з':'z',
+				'и':'i', 'й':'j', 'к':'k', 'л':'l', 'м':'m', 'н':'n', 'о':'o', 'п':'p', 'р':'r', 'с':'s',
+				'т':'t', 'у':'u', 'ф':'f', 'х':'kh', 'ц':'c', 'ч':'ch', 'ш':'sh', 'щ':'sch', 'ъ':'', 'ы':'y', 
+				'ь':'', 'э':'e', 'ю':'yu', 'я':'ya', ' ':'-', '-':'-', '_':'_', '0':'0', '1':'1', '2':'2',
+				'3':'3', '4':'4', '5':'5', '6':'6', '7':'7', '8':'8', '9':'9', 'a':'a', 'b':'b', 'c': 'c',
+				'd':'d', 'e':'e', 'f':'f', 'g':'g', 'h':'h', 'i':'i', 'j':'j', 'k':'k', 'l':'l', 'm':'m',
+				'n':'n', 'o':'o', 'p':'p', 'q':'q', 'r':'r', 's':'s', 't':'t', 'u':'u', 'v':'v', 'w':'w', 'x':'x', 'y':'y', 'z':'z'};
+		
+			var keynum = window.event ? e.keyCode : e.which;
+			var keychar = String.fromCharCode(curKeynum).toLowerCase();
+			var curLetter = '';
+			if (latinizedSymbs[keychar] || keynum==8 || keynum==46) { 
+				document.getElementById('add_folder_uripart_'+id).value = '';
+				for(i=0; i<  title.length; i++) {
+					curLetter = title[i].toLowerCase() ? title[i].toLowerCase() : title[i];
+					document.getElementById('add_folder_uripart_'+id).value += latinizedSymbs[curLetter] ? latinizedSymbs[curLetter] : '';
+				}
+			} 
+		}
+	
+		function del(id,pid) {	
+			if (id)	{
+			    if(confirm(\"Действительно желаете удалить?\")) {
+					if(".$MODULE_OUTPUT['ajax_allowed'].") {
+						var request = {'module': ".$MODULE_OUTPUT['module_id'].", 'page_uri': '".$Engine->EngineUri()."', 'mode': 'html_code', 'params': ';ajax_del_folder', 'unassign_data': {'id': id,'pid':pid} };
+						jQuery.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							success: function( data ) {
+								if(pid != 0) {
+									if(jQuery('#folder_'+pid+'>ul>li').length > 1) {
+										jQuery('#folder_'+id).remove();
+										//jQuery('#folder_'+pid+'>ul>li').removeClass('first_child last_child');
+										if(jQuery('#folder_'+pid+'>ul>li').length != 1) {
+											//jQuery('#folder_'+pid+'>ul>li:first-child').addClass('first_child');
+											//jQuery('#folder_'+pid+'>ul>li:last-child').addClass('last_child');
+										} else {
+											//jQuery('#folder_'+pid+'>ul>li').addClass('one_child');
+										}
+									} else {
+										if(jQuery('#folder_'+pid+'>ul>li').length == 1) {
+											jQuery('#folder_'+pid+'>ul').remove();
+											jQuery('#folder_'+pid).removeClass('no_marker');
+										}
+									}
+								} else {
+									jQuery('#folder_'+id).remove();
+									//jQuery('#folder_'+pid).parent().find('>li').removeClass('first_child last_child');
+									
+									if(jQuery('#folder_'+pid).parent().find('>li').length != 1) {
+										//jQuery('#folder_'+pid).parent().find('>li:first-child').addClass('first_child');
+										//jQuery('#folder_'+pid).parent().find('>li:last-child').addClass('last_child');
+									} else {
+										//jQuery('#folder_'+pid).parent().find('>li').addClass('one_child');
+									}
+								}
+								SetPosClass(pid);
+								
+								//alert(data);
+							}
+						});
+					}
+				} else {
+					return false;
+				}
+			}
+			else {
+                alert(\"Нельзя удалять главную страницу!\");
+            }
+			return false;
+		};
+	
+		function open_folders() {
+			get = new String(window.location);
+			x = get.indexOf('?');
+		
+			if (x!=-1) {
+				l = get.length;
+			
+				get = get.substr(x+1, l-x);
+				l = get.split('&');
+				x = 0;
+			
+				for(i in l) {
+					get = l[i].split('=');
+					show_folders(get[1], 1);
+					x++;
+				}
+			}
+		};
+	
+		//function add(id) {		
+		//	//if (confirm(\"Добавляем?\"))
+		//	{
+		//		layer = document.getElementById(\"add\" + id)
+		//		if(layer.style.display == \"block\") {
+		//			layer.style.display = \"none\";
+		//		} else {
+		//			add_block = '<form action=\"".$EE["unqueried_uri"]."\" method=\"post\">' +
+		//				'<strong>Название:</strong><br /><input id=\"add_folder_title\" onkeydown=\"check_for_shift(event)\" onkeypress=\"setCurKeynum(event)\" onkeyup=\"fill_uripart(event,this.value)\" name=\"".$NODE_ID."[add][name]\" class=\"input_long\" type=\"text\" /><br />' +
+		//				'<strong>Описание:</strong><br /><input name=\"".$NODE_ID."[add][descr]\" class=\"input_long\" type=\"text\" /><br />' +
+		//				'<strong>Часть адреса:</strong><br /><input id=\"add_folder_uripart\" name=\"".$NODE_ID."[add][uri_part]\" class=\"input_long\" type=\"text\" /><br />' +
+		//				'<input name=\"".$NODE_ID."[add][id]\" type=\"hidden\" value=\"' + id + '\">' +
+		///				'<small>(часть пути в&nbsp;адресной строке браузера, допустимы: латинские буквы, цифры, дефис, знак подчёркивания)</small><br />' + '".$adl."' +
+		//				'<input type=\"Submit\" value=\"Добавить раздел\" />' +
+		//				'</form>';
+		//			layer.innerHTML = add_block;
+		//			layer.style.display = \"block\";
+		//		}
+		//	}
+		//};
+	
+		//function show_folders(id, to_show) {
+		//	if (!to_show) {
+		//		document.getElementById('ul_'+id).style.display='none';
+		//		document.getElementById('a_'+id).href='javascript:show_folders('+id+', 1);';
+		//		document.getElementById('span_'+id).innerHTML='+';
+		//		document.getElementById('span_'+id).title='Развернуть';
+		//		
+		//	} else {
+		//	
+		//		document.getElementById('ul_'+id).style.display='block';
+		//		document.getElementById('a_'+id).href='javascript:show_folders('+id+', 0);';
+		//		document.getElementById('span_'+id).innerHTML='-';
+		//		document.getElementById('span_'+id).title='Свернуть';
+		//	}
+		//}
+			
+		function add(id) {
+			layer = document.getElementById('add' + id)
+			if(layer.style.display == 'block') {
+				layer.style.display = 'none';
+			} else {
+				add_block = '<form action=\"".$EE["unqueried_uri"]."\" method=\"post\">' +
+					'<strong>Название:</strong><br /><input id=\"add_folder_title\" onkeypress=\"setCurKeynum(event)\" onkeyup=\"fill_uripart(event,this.value,'+id+')\" name=\"".$NODE_ID."[add][name]\" class=\"input_long\" type=\"text\" /><br />' +
+					'<strong>Описание:</strong><br /><input name=\"".$NODE_ID."[add][descr]\" class=\"input_long\" type=\"text\" /><br />' +
+					'<strong>Часть адреса:</strong><br /><input id=\"add_folder_uripart_'+id+'\" name=\"".$NODE_ID."[add][uri_part]\" class=\"input_long\" type=\"text\" /><br />' +
+					'<input name=\"".$NODE_ID."[add][id]\" type=\"hidden\" value=\"' + id + '\">' +
+					'<small>(часть пути в&nbsp;адресной строке браузера, допустимы: латинские буквы, цифры, дефис, знак подчёркивания)</small><br />' + '".$adl."' +
+					'<input type=\"Submit\" value=\"Добавить раздел\" />' +
+					'</form>';
+				layer.innerHTML = add_block;
+				layer.style.display = \"block\";
+			}
+		};
+		//---Расстановка классов при изменении структуры разделов---
+		function SetPosClass(pid) {
+			if(pid != 0) {
+				jQuery('#folder_'+pid+'>ul>li').removeClass('last_child first_child one_child');
+				if(jQuery('#folder_'+pid+'>ul').length) {
+					if(jQuery('#folder_'+pid+'>ul>li').length > 1) {
+						jQuery('#folder_'+pid+'>ul>li:first-child').addClass('first_child');
+						jQuery('#folder_'+pid+'>ul>li:last-child').addClass('last_child');
+					} else {
+						jQuery('#folder_'+pid+'>ul>li').addClass('one_child');
+					}
+				}				
+			} else {
+				jQuery('#folder_'+pid).parent().find('>li').removeClass('last_child first_child one_child');
+				if(jQuery('#folder_'+pid).parent().find('>li').length > 1) {
+					jQuery('#folder_'+pid).parent().find('>li:first-child').addClass('first_child');
+					jQuery('#folder_'+pid).parent().find('>li:last-child').addClass('last_child');
+				} else {
+					jQuery('#folder_'+pid).parent().find('>li').addClass('one_child');
+				}
+			}
+		}
+		jQuery(document).ready(function($) {		
+		//---прячем все разделы кроме отмеченных как открытые---//
+			jQuery('.folders_list ul ul:not(.open_folder)').each(function() {
+				$(this).hide();
+			});
+		//---Показать подразделы, если не подгруженны подгружаем---//
+			var is_load = false;
+			jQuery('.folders_list .slide_botton').live('click',function(event) {
+				event = event || window.event;
+				var t = event.target || event.srcElement;
+				if(!is_load) {
+					if(jQuery(t).parent().find('>ul').length == 0) {
+						if(".$MODULE_OUTPUT['ajax_allowed'].") {
+							var pid = $(t).parent().attr('id').split('_');
+							pid = pid[1];
+							is_load = true;
+							var request = {'module': ".$MODULE_OUTPUT['module_id'].", 'page_uri': '".$Engine->EngineUri()."', 'mode': 'html_code', 'params': ';ajax_get_folder', 'unassign_data': {'pid': pid} };
+							$.ajax({
+								type: 'POST',
+								url: '/ajax_mode/', 
+								data: request,
+								success: function( data ) {//alert(data);
+									is_load = false;
+									$(t).parent().append(data);
+									SetPosClass(pid);
+									var elemid = jQuery(t).parent().find('>ul');
+									if(jQuery(elemid).length) {
+										if(jQuery(elemid).is(':hidden')) {
+											jQuery(elemid).slideDown('slow');
+											$(t).addClass('close');
+										} else {
+											jQuery(elemid).slideUp('slow');
+											$(t).removeClass('close');
+										}
+									}
+								}
+							});
+						}
+					} else {
+						var elemid = jQuery(t).parent().find('>ul');
+						if(jQuery(elemid).length) {
+							if(jQuery(elemid).is(':hidden')) {
+								jQuery(elemid).slideDown('slow');
+								$(t).addClass('close');
+							} else {
+								jQuery(elemid).slideUp('slow');
+								$(t).removeClass('close');
+							}
+						}
+					}
+				}					
+			});
+		//---Создание подраздела и добавление его в ДОМ---//
+			if(".$MODULE_OUTPUT['ajax_allowed'].") { 
+				jQuery('.folder_add form :submit').live('click',function() {
+					var form = $(this).parents('form');
+					var name = form.find('input[name=\"".$NODE_ID."[add][name]\"]').val();
+					var descr = form.find('input[name=\"".$NODE_ID."[add][descr]\"]').val();
+					var uripart = form.find('input[name=\"".$NODE_ID."[add][uri_part]\"]').val();
+					var pid = form.find('input[name=\"".$NODE_ID."[add][id]\"]').val();
+					var texter = form.find('input[name=\"".$NODE_ID."[add][texter]\"]').is(':checked') ? 1 : 0;
+					var request = {'module': ".$MODULE_OUTPUT['module_id'].", 'page_uri': '".$Engine->EngineUri()."', 'mode': 'html_code', 'params': ';ajax_add_folder', 'unassign_data': {'name': name,'descr': descr,'uripart': uripart,'pid': pid,'texter': texter} };
+					$.ajax({
+						type: 'POST',
+						url: '/ajax_mode/', 
+						data: request,
+						success: function( data ) {
+							if(pid != 0) {
+								if($('#folder_'+pid+'>ul').length) {
+									$('#folder_'+pid+'>ul').append(data);
+								} else {
+									$('#folder_'+pid).addClass('no_marker').append(data);
+								}
+							} else {
+								$('#folder_'+pid).parent().append(data);
+							}
+							SetPosClass(pid);
+							var elemid = $('#folder_'+pid+'>ul');
+							if(jQuery(elemid).length && jQuery(elemid).find('>li').length == 1) {
+								if(jQuery(elemid).is(':hidden')) {
+									jQuery(elemid).slideDown('slow');
+									$(t).addClass('close');
+								} else {
+									jQuery(elemid).slideUp('slow');
+									$(t).removeClass('close');
+								}
+							}
+						}
+					});
+					return false;
+				});
+			}
+		//---Скрываем, показываем раздел---//
+			if(".$MODULE_OUTPUT['ajax_allowed'].") {
+				jQuery('.folders_list .hide_folder a, .folders_list .show_folder a').live('click',function() {
+					var id = $(this).attr('href').split('/');
+					var operation = '';
+					id = id[1];
+					if($(this).parent().hasClass('hide_folder')) {
+						operation = 'hide_folder';
+					} else if($(this).parent().hasClass('show_folder')) {
+						operation = 'show_folder';
+					}
+					
+					var request = {'module': ".$MODULE_OUTPUT['module_id'].", 'page_uri': '".$Engine->EngineUri()."', 'mode': 'html_code', 'params': ';ajax_hide_folder', 'unassign_data': {'id': id,'operation': operation} };
+					$.ajax({
+						type: 'POST',
+						url: '/ajax_mode/', 
+						data: request,
+						success: function( data ) {
+							if(!(!data || !data.documentElement)) {
+								var rootNodeName = data.documentElement.nodeName;
+								if(rootNodeName != 'parsererror') {
+									xmlDocElem = data.documentElement;
+									if(rootNodeName == 'hide_folder') {
+										var folder = xmlDocElem.getElementsByTagName('folder').item(0).firstChild.data;
+										var status = xmlDocElem.getElementsByTagName('status').item(0).firstChild.data;
+										
+										$('#folder_'+id+' .foldet_name').replaceWith(folder);
+										if(status == 1) {
+											$('#folder_'+id).removeClass('inactive');
+										} else if(status == 0) {
+											$('#folder_'+id).addClass('inactive');
+										}
+									}
+								}
+							}
+						}
+					});
+					return false;
+				});
+			}
+		//---Меняем позицию раздела---//
+			if(".$MODULE_OUTPUT['ajax_allowed'].") {
+				jQuery('.folders_list li > .folder_title .pos_move a').live('click',function() {
+					var id = $(this).attr('href').split('/');
+					var operation = id[0];
+					id = id[1];
+					
+					var request = {'module': ".$MODULE_OUTPUT['module_id'].", 'page_uri': '".$Engine->EngineUri()."', 'mode': 'html_code', 'params': ';ajax_pos_folder', 'unassign_data': {'id': id,'operation': operation} };
+					$.ajax({
+						type: 'POST',
+						url: '/ajax_mode/', 
+						data: request,
+						success: function( data ) {
+							if(!(!data || !data.documentElement)) {
+								var rootNodeName = data.documentElement.nodeName;
+								if(rootNodeName != 'parsererror') {
+									xmlDocElem = data.documentElement;
+									if(rootNodeName == 'sort_folder') {
+										var from_id = xmlDocElem.getElementsByTagName('from_id').item(0).firstChild.data;
+										var to_id = xmlDocElem.getElementsByTagName('to_id').item(0).firstChild.data;
+										var pid = xmlDocElem.getElementsByTagName('pid').item(0).firstChild.data;
+										$('#folder_'+to_id).replaceWith($('#folder_'+from_id).replaceWith($('#folder_'+to_id).clone()));
+										SetPosClass(pid);
+									}
+								}
+							}
+						}
+					});
+					return false;
+				});
+			}
+		});
+	</script>";*/
+?>
