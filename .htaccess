@@ -1,0 +1,15 @@
+# EEngine .htaccess file^M
+# version: 1.22^M
+# date: 2008-08-22^M
+<FilesMatch ^.*\.(inc|class|ini|scm|tpl|ptpl)$>
+        Deny from all
+</FilesMatch>
+<IfModule mod_rewrite.c>
+        RewriteEngine on
+	RewriteCond %{HTTP_HOST} ^www.nsau.edu.ru [NC]
+	RewriteRule ^(.*)$ http://nsau.edu.ru/$1 [L,R=301]
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^.*$ index.php [L]
+</IfModule>
+
