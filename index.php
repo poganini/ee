@@ -1,5 +1,5 @@
 <?php 
-
+// Hello World by Artem
 // EEngine startup file
 // version: 2.5
 // date: 2013-11-25
@@ -11,15 +11,15 @@ $start_time = microtime();
 $start_array = explode(" ",$start_time);
 
 $start_time = $start_array[1] + $start_array[0]; 
-	
-// подключаем конфигурационный файл
+
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 if (!@include_once "config.inc")
 {
 	die($DEBUG_LEVEL ? "<strong>EEngine startup</strong> fatal error #1001:<br />\n&nbsp;&nbsp;Configuration file <code>config.inc</code> not found or access denied." : "");
 }
 
 
-// блок кросс-авторизации
+// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 if (isset($_GET['authpass'])) {
 	
 	unset($_GET['authpass']);
@@ -41,7 +41,7 @@ if (isset($_GET['authpass'])) {
 }
 
 
-// в режиме блокировки выводим соответствующую страницу
+// пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 if (OPERATE_MODE == "B")
 {
 	@include BLOCKED_MODE_PAGE;
@@ -49,7 +49,7 @@ if (OPERATE_MODE == "B")
 }
 
 
-// задаём первоначальный уровень отладки отображения ошибок
+// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 if (DEBUG_ONLY_FOR_ADMIN)
 {
 	$DEBUG_LEVEL = 0;
@@ -58,7 +58,7 @@ if (DEBUG_ONLY_FOR_ADMIN)
   error_reporting($DEBUG_LEVEL ? E_ALL : 0);
 
 
-// подключаем модуль отображения критических ошибок
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 if (@include_once INCLUDES . "FatalErrorDisplay" . CLASS_EXT)
 {
 	$FED = new FatalErrorDisplay(
@@ -84,7 +84,7 @@ else
 
 @include_once INCLUDES . "Snoopy.class.php";
 
-// подключаем необходимые функции
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 if (!@include_once INCLUDES . "PHP4_patches.inc")
 {
 	$FED->FatalError(1003, INCLUDES . "PHP4_patches.inc");
@@ -96,13 +96,13 @@ if (!@include_once INCLUDES . "CF" . CLASS_EXT)
 }
 
 
-// формируем значения для часового пояса
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 ini_set("date.timezone", TIMEZONE);
 define("TIMEZONE_OFFSET_SECONDS", TIMEZONE_OFFSET_HOURS * 3600);
 define("TIMEZONE_OFFSET_FORMATTED", ((TIMEZONE_OFFSET_HOURS >= 0) ? "+" : "-") . sprintf("%02d", floor(abs(TIMEZONE_OFFSET_HOURS))) . ":" . sprintf("%02d", 60 * (abs(TIMEZONE_OFFSET_HOURS) - floor(abs(TIMEZONE_OFFSET_HOURS)))));
 
 
-// настраиваем кодировку
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 switch (CODEPAGE)
 {
 	case "utf8":
@@ -123,17 +123,17 @@ switch (CODEPAGE)
 }
 
 
-// настраиваем пути
-define("THEMES", DOC_ROOT . THEMES_DIR);                // FS-путь к темам
-define("HTTP_THEMES", HTTP_ROOT . THEMES_DIR);          // HTTP-путь к темам
-define("COMMON_IMAGES", DOC_ROOT . IMAGES_DIR);         // FS-путь к общим изображениям
-define("HTTP_COMMON_IMAGES", HTTP_ROOT . IMAGES_DIR);   // HTTP-путь к общим изображениям
-define("HTTP_COMMON_SCRIPTS", HTTP_ROOT . SCRIPTS_DIR); // HTTP-путь к общим скриптам
-define("FILES", DOC_ROOT . FILES_DIR);                  // FS-путь к пользовательским файлам
-define("HTTP_FILES", HTTP_ROOT . FILES_DIR);            // HTTP-путь к пользовательским файлам
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+define("THEMES", DOC_ROOT . THEMES_DIR);                // FS-пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ
+define("HTTP_THEMES", HTTP_ROOT . THEMES_DIR);          // HTTP-пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ
+define("COMMON_IMAGES", DOC_ROOT . IMAGES_DIR);         // FS-пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+define("HTTP_COMMON_IMAGES", HTTP_ROOT . IMAGES_DIR);   // HTTP-пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+define("HTTP_COMMON_SCRIPTS", HTTP_ROOT . SCRIPTS_DIR); // HTTP-пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+define("FILES", DOC_ROOT . FILES_DIR);                  // FS-пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+define("HTTP_FILES", HTTP_ROOT . FILES_DIR);            // HTTP-пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
 
-// подключаем класс БД и создаём общее соединение с базой данных
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 switch (DB_TYPE)
 {
 	case "mysql":
@@ -173,7 +173,7 @@ switch (DB_TYPE)
 		}
 		$DB->Exec("SET character_set_client='" . CODEPAGE_DB . "'");
 		$DB->Exec("SET character_set_results='" . CODEPAGE_DB . "'");
-		$DB->Exec("SET collation_connection='" . CODEPAGE_DB . "_general_ci'"); // !!! возможно, следует вводить отдельную переменную
+		$DB->Exec("SET collation_connection='" . CODEPAGE_DB . "_general_ci'"); // !!! пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 		break;
 
 
@@ -183,7 +183,7 @@ switch (DB_TYPE)
 }
 
 
-// поключаем и настраиваем альтернативный обработчик сеансов работы (сессий)
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅ)
 if (CF::IsNonEmptyStr(SESSION_HANDLER_VARNAME))
 {
   $SessionClass = SESSION_HANDLER_VARNAME;
@@ -203,7 +203,7 @@ if (CF::IsNonEmptyStr(SESSION_HANDLER_VARNAME))
 		array(&$GLOBALS[SESSION_HANDLER_VARNAME], "GCdummy")
 		);
 }
-// а иначе хотя бы задаём максимальную вероятность, что устаревшая сессия будет удалена
+// пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 else
 {
 	ini_set("session.gc_probability", 100);
@@ -211,7 +211,7 @@ else
 
 
  
-// включаем систему аутентификации
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 if (!@include_once INCLUDES . "Auth" . CLASS_EXT)
 {
 	$FED->FatalError(1009, INCLUDES . "Auth" . CLASS_EXT);
@@ -222,14 +222,14 @@ $ADMIN_USER = ($Auth->usergroup_id == ADMIN_USERGROUP_ID);
 
 
 
-// в случае необходимости меняем уровень отображения ошибок PHP
+// пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ PHP
 if ($DEBUG_LEVEL && DEBUG_ONLY_FOR_ADMIN && $ADMIN_USER)
 {
-	error_reporting(E_ALL); // !!! возможно, нужно сделать разные уровни отображения для разных уровней отладки
+	error_reporting(E_ALL); // !!! пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	$DB->SetDebugLevel($DEBUG_LEVEL);
 }
 
-// в режиме технических работ выводим соответствующую страницу, если пользователь не админ и не находится на странице авторизации.
+// пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 if ((OPERATE_MODE == "S") && !($ADMIN_USER || CF::URIin(HTTP_ROOT . SERVICE_MODE_LOGIN_PAGE)))
 {
 	@include SERVICE_MODE_PAGE;
@@ -237,17 +237,17 @@ if ((OPERATE_MODE == "S") && !($ADMIN_USER || CF::URIin(HTTP_ROOT . SERVICE_MODE
 }
 
 
-// проверяем доступность файла движка
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 if (!@include_once INCLUDES . "EEngine" . CLASS_EXT)
 {
 	$FED->FatalError(1010, INCLUDES . "EEngine" . CLASS_EXT);
 }
 
-// запускаем движок с установленным ранее уровнем обработки ошибок, и корневой папкой, определяемой по применённому домену
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 $Engine = new EEngine($DEBUG_LEVEL, $DOMAINS[APPLIED_DOMAIN][1]);
 
 if (defined("CACHE_TIME") && CACHE_TIME && !$ADMIN_USER && $allowed = $Engine->OperationAllowed(0, "engine.cache", -1, $Auth->usergroup_id)) {
-	//Кэширование:
+	//пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
 	$DB->SetTable("engine_cache");
 	$DB->AddCondFS("uri", "=", $_SERVER["REQUEST_URI"]);
 	$DB->AddCondFS("usergroup_id", "=", $Auth->usergroup_id);
@@ -283,7 +283,7 @@ if (defined("CACHE_TIME") && CACHE_TIME && !$ADMIN_USER && $allowed = $Engine->O
 else
 	$Engine->Act();
 
-//Подсчёт времени загрузки:
+//пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:
 
 $end_time = microtime();
 
