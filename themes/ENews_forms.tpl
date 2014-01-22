@@ -71,9 +71,17 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 			<label class="block wide"><strong>Дата и&nbsp;время публикации:</strong></label>
 			<input type="text" class="date_time" name="<?=$NODE_ID?>[add_item][public][date]" value="<?=$data['public_time']?>" size="18" /><br />
 			<small>(пустые значения автоматически заменяются на текущие дату/время)</small>
-		</p>
-<?php	if(isset($MODULE_OUTPUT["show_event_input"]) && $MODULE_OUTPUT["show_event_input"]) { ?>
-		<p>
+		</p> 
+    <?php $show_event_params = (isset($MODULE_OUTPUT["show_event_input"]) && $MODULE_OUTPUT["show_event_input"]); ?>
+<?php	/*if(isset($MODULE_OUTPUT["show_event_input"]) && $MODULE_OUTPUT["show_event_input"])*/ { ?>
+    <?php if(!$show_event_params) { ?>
+    <p>
+    <label class="block wide"><strong>Параметры события:</strong></label>
+    <input type="checkbox" id="show-event-params" value="1" />  
+    </p>
+    <?php } ?>
+		<div id="event-params"<?php if(!$show_event_params) { ?> style="display: none; "<?php } ?>>
+    <p>
 			<label class="block wide"><strong>Дата и&nbsp;время начала события:<span class="obligatorily">*</span></strong></label>
 			<input type="text" class="date_time" name="<?=$NODE_ID?>[add_item][start_event][date]" value="<?=$data['start_event']?>" size="18" /><br />
 			<!-- <small>(пустые значения автоматически заменяются на текущие дату/время)</small> -->
@@ -83,6 +91,7 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 			<input type="text" class="date_time" name="<?=$NODE_ID?>[add_item][end_event][date]" value="<?=$data['end_event']?>" size="18" /><br />
 			<small>(пустые значения автоматически заменяются на текущую дату(или на дату окончания событя, если указана) и время 18:00(если не указано))</small>
 		</p>
+    </div>
 <?php	} ?>
 		<p>
 			<label class="block wide"><strong>Изображение:</strong></label>
@@ -163,7 +172,15 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 			<label class="block wide"><strong>Дата и&nbsp;время публикации:</strong></label>
 			<input type="text" class="date_time" name="<?=$NODE_ID?>[save_item][public][date]" value="<?=$data['public_time']?>" size="18" />
 		</p>
-<?php	if(isset($MODULE_OUTPUT["show_event_input"]) && $MODULE_OUTPUT["show_event_input"]) { ?>
+<?php $show_event_params = (isset($MODULE_OUTPUT["show_event_input"]) && $MODULE_OUTPUT["show_event_input"]); ?>
+<?php	/*if(isset($MODULE_OUTPUT["show_event_input"]) && $MODULE_OUTPUT["show_event_input"])*/ { ?>
+    <?php if(!$show_event_params) { ?>
+    <p>
+    <label class="block wide"><strong>Параметры события:</strong></label>
+    <input type="checkbox" id="show-event-params" value="1" />  
+    </p>
+    <?php } ?>    
+    <div id="event-params"<?php if(!$show_event_params) { ?> style="display: none; "<?php } ?>>
 		<p>
 			<label class="block wide"><strong>Дата и&nbsp;время начала события:</strong></label>
 			<input type="text" class="date_time" name="<?=$NODE_ID?>[save_item][start_event][date]" value="<?=$data['start_event']?>" size="18" /><br />
@@ -174,6 +191,7 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 			<input type="text" class="date_time" name="<?=$NODE_ID?>[save_item][end_event][date]" value="<?=$data['end_event']?>" size="18" /><br />
 			<small>(пустые значения автоматически заменяются на текущую дату(или на дату окончания события, если указана) и время 18:00(если не указано))</small>
 		</p>
+    </div>
 <?php	} ?>
 		<p>
 			<label class="block wide"><strong>Заголовок:</strong></label>

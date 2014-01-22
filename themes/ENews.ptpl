@@ -1,0 +1,924 @@
+<?php 
+// version: 2.8.8
+// date: 2012-09-04
+global $Engine, $Auth, $EE;
+
+$STYLES = $EE["http_styles"];
+$SCRIPTS = HTTP_COMMON_SCRIPTS;
+$AFMRequestData = $Auth->getAFMRequestData();
+
+if(isset($MODULE_OUTPUT['scripts_mode'])) {
+	switch($MODULE_OUTPUT['scripts_mode']) {
+		case 'tiny_mce_news': {
+			$EE["head_extra5"][] = <<<END
+		<script type="text/javascript">
+			tinyMCE.init({
+				// General options
+				mode : "textareas",
+				editor_selector : "tiny_mce_news",
+				theme : "advanced",
+        elements : "ajaxfilemanager",
+        convert_urls: false,
+				language: "ru",
+        width: "100%",
+				plugins : "fullscreen,table,advimage,advlink,media,contextmenu,paste,template,inlinepopups",
+				
+				//theme_advanced_buttons12 : "bold,italic,underline,strikethrough,|,justifyleft,justifycenter,justifyright,justifyfull,|,styleselect,formatselect",
+				//theme_advanced_buttons2 : "bullist,numlist,|,outdent,indent,|,undo,redo,|,link,unlink,anchor,image,cleanup,help,code, media,liststyle,fullscreen, pasteword",
+				//theme_advanced_buttons3 : "hr,removeformat,visualaid,|,sub,sup,|,charmap,tablecontrols,|emotions,images,|,template",
+				theme_advanced_buttons1 : "bold,italic,underline,|,bullist,numlist,|,outdent,indent,|,undo,redo,|,link,unlink,image,code, media,liststyle,fullscreen,visualaid,|,sub,sup,|,charmap,tablecontrols,|emotions,images",
+				theme_advanced_buttons2 : "",
+				theme_advanced_buttons3 : "",
+				theme_advanced_toolbar_location : "top",
+				theme_advanced_toolbar_align : "left",
+				theme_advanced_statusbar_location : "bottom",
+				theme_advanced_resizing : true,
+	
+				// Skin options
+				skin : "o2k7",
+				skin_variant : "silver",
+	
+				// Example content CSS (should be your site CSS)
+				//content_css : "css/example.css",
+        content_css: "{$STYLES}screen-tinymce.css?2",
+	
+				// Drop lists for link/image/media/template dialogs
+        plugin_insertdate_dateFormat : "%d.%m.%Y",
+        plugin_insertdate_timeFormat : "%H:%M:%S",
+		extended_valid_elements : "hr[class|width|size|noshade],font[face|size|color|style],span[class|align|style]",
+				template_external_list_url : "js/template_list.js",
+				external_link_list_url : "js/link_list.js",
+				external_image_list_url : "js/image_list.js",
+				flash_external_list_url : "js/flash_list.js",
+				media_external_list_url : "js/media_list.js",
+        file_browser_callback : "ajaxfilemanager",
+		//paste_use_dialog : false,
+		
+        theme_advanced_resize_horizontal : true,
+        apply_source_formatting : true,
+				// Replace values for the template plugin
+				/*template_replace_values : {
+					username : "Some User",
+					staffid : "991234"
+				},*/
+				style_formats : [
+					{title: "Большой заголовок", block: "p", classes: "font_big_head" },
+					{title: "Мелкий текст", inline: "span", classes: "font_mini", split: false},
+					{title: "Бардовый разделитель", selector: "hr", classes: "sub_hr"},
+					{title: "ФИО", selector: "p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,span,strong,img,table,a,hr", classes: "name-color"},
+					{title: "Картинка слева", selector: "p,img,hr", classes: "float-right"},
+					{title: "Картинка справа", selector: "p,img,hr", classes: "float-left"},
+					{title: "Серый блок", selector: "p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,span,strong,img,table,a", classes: "gray-radius-block"},
+					{title: "Выделенная строка", selector: "table.nsau_table tr", classes: "tr_highlight"},
+					{title: "Выделенная ячейка", selector: "table.nsau_table td", classes: "td_highlight"},
+					{title: "Стилизованная таблица НГАУ", selector: "table", classes: "nsau_table"},
+				],
+				table_styles : "Стилизованная таблица НГАУ=nsau_table",
+				template_templates: [
+					{title: "Карточка персоны", src: "/themes/template/person_card.html", description: "Карточка с выравниванием картинки по левой стороне"}
+				]
+			}); 
+      jQuery(document).ready(function($) {
+        $('#show-event-params').change(function(){
+          console.log($(this).prop('checked'));
+          if($(this).prop('checked')) {
+            $('#event-params').show();
+          } 
+          else {
+            $('#event-params').hide();
+          }
+        });
+      });
+		</script>
+END;
+		}
+		break;
+	
+	case 'online_webcast': {
+			$EE["head_extra3"][] = <<<END
+			<script type="text/javascript" src="/scripts/jquery/jquery.colorbox.js"></script>
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			VideoSteam = function() {
+				if($('a.modal_video').length) {
+					$('a.modal_video').click(function() {
+				
+
+						$.colorbox({
+							html: '<object height="330px" width="520px" type="application/x-shockwave-flash" data="{$SCRIPTS}flash_player/flowplayer-3.2.7.swf" id="player_api"><param value="true" name="allowfullscreen"><param value="always" name="allowscriptaccess"><param value="high" name="quality"><param value="false" name="cachebusting"><param value="#000000" name="bgcolor"><param value="config={&quot;clip&quot;:{&quot;url&quot;:&quot;http://stvideo.nsau.edu.ru:8090/stream2.flv&quot;,&quot;autoPlay&quot;:true},&quot;playerId&quot;:&quot;player&quot;,&quot;playlist&quot;:[{&quot;url&quot;:&quot;http://stvideo.nsau.edu.ru:8090/stream2.flv&quot;,&quot;autoPlay&quot;:true}]}" name="flashvars"></object>',
+							innerWidth:520,
+							innerHeight:390,
+							transition: 'none',
+							auto_size: false,
+							title:"Прямая видеотрансляция из зала учёного совета"
+						});
+						return false;
+					});				
+				};
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'input_datetimepicker': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			InputDatetimepicker = function() {
+				if($('input.date_time').length) {
+					$('input.date_time').datetimepicker({
+						closeText: 'Закрыть',
+						prevText: 'Предыдущий',
+						nextText: 'Следующий',
+						currentText: 'Сегодня',
+						monthNames: ['Январь','Февраль','Март','Апрель','Май','Июнь', 'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+						monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июнь', 'Июль', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+						dayNames: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+						dayNamesShort: ['Вос', 'Пон', 'Втор', 'Сре', 'Чет', 'Пят', 'Суб'],
+						dayNamesMin: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
+						weekHeader: 'Wk',
+						dateFormat: 'yy-mm-dd',
+						timeFormat: 'hh:mm:ss',
+						ampm: false,
+						/*hourMin: 8,
+						hourMax: 18,*/
+						second: 0,
+						secondMax: 0,
+						millisecMax: 0,
+						//timeOnlyTitle: 'Выберите время',
+						timeText: 'Время',
+						hourText: 'Часы',
+						minuteText: 'Минуты',
+						secondText: 'Секунды',
+						init_this_time: true,
+						firstDay: 1,
+					});
+				};
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'events_news': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			EventNews = function(modul_id,news_cat,folder_id) {
+				var news_cat_str = '';
+				var folder_id_str = '';
+				for(var i = 0, j = news_cat.length; i < j; i++) {
+					if(i) {
+						news_cat_str += ','+news_cat[i];
+					} else {
+						news_cat_str += news_cat[i];
+					}
+				};
+				for(var i = 0, j = folder_id.length; i < j; i++) {
+					if(i) {
+						folder_id_str += ','+folder_id[i];
+					} else {
+						folder_id_str += folder_id[i];
+					}
+				};
+				if($("#datepicker").length) {  
+					function getEvents(year, month) {
+						var request = {'module': modul_id, 'mode': 'html_code', 'params': 'ajax_get_event;'+news_cat_str, 'data': {'month': month,'year': year,'folder_id': folder_id_str}};
+						var response;
+						$.ajax({
+							type: 'POST',
+							async: false,
+							url: /ajax_mode/, 
+							data: request,
+							success: function(data) {
+								if (data == 'null') {data = '[]';};
+								dates = jQuery.parseJSON(data);
+								response = dates; 
+								return response;
+							},
+							error: function (jqXHR, textStatus, errorThrown) {
+								
+							},
+						});
+						return response;
+					};
+					$(".events_news .evetns_cont").html('');
+					$(".events_news .pager").html('');
+					var dates = getEvents('','');
+					var month_events = null;
+					var current_event_date = null;
+					var defaultDate = '+0y +0m';
+					if(dates != null) {
+						month_events = dates['month_events'];
+						current_event_date = dates['current_event_date'];
+						defaultDate = dates['defaultDate'];
+						dates = dates['output'];
+					};
+					
+					$('.events_news .pager a').live('click', function() {
+						$('.events_news .current').removeClass('current');
+						$(this).parent().addClass('current');
+						$('.evetns_cont '+$(this).attr('href')).addClass('current');
+						return false;
+					});
+					function animate_month_events(month_events, ul_top, duration, ul_height) {
+						var is_hover = false;
+						$(month_events).mouseenter(function() {
+							is_hover = true;
+						}).mouseleave(function() {
+							is_hover = false;
+						});
+						setTimeout(function() {
+							setTimeout(function() {
+								if(!is_hover) {
+									if(ul_top == 0) {
+										$(month_events).css("top", (parseInt($(month_events).css("top"))+1)+'px');
+									} else {
+										$(month_events).css("top", (parseInt($(month_events).css("top"))-1)+'px');
+									}	
+								}						
+								if((-1)*parseInt($(month_events).css("top")) >= ul_height) {
+									ul_top = 0;
+									animate_month_events(month_events, ul_top, duration, ul_height);
+								} else if((-1)*parseInt($(month_events).css("top")) <= 0) {
+									ul_top = (-1)*ul_height;
+									animate_month_events(month_events, ul_top, duration, ul_height);
+								} else {
+									setTimeout(arguments.callee, duration);								
+								}							
+							}, 1);
+						}, 2000);
+					};
+					var ul_height = 0;
+					if($('.events_news .month_events_list ul').length) {
+						$(".events_news .month_events").show(0);
+						ul_height = parseInt($('.events_news .month_events_list ul').height());
+						if(ul_height > parseInt($('.events_news .month_events_list').height())) {
+							ul_height = ul_height - parseInt($('.events_news .month_events_list').height());
+							animate_month_events($('.events_news .month_events_list ul'), (-1)*ul_height, 50, ul_height);
+						}
+					} else {
+						$(".events_news .month_events").hide(0);
+					}
+					
+					var events = $("#datepicker").datetimepicker({
+						closeText: 'Done',
+						prevText: 'Предыдущий',
+						nextText: 'Следующий',
+						currentText: 'Сегодня',
+						monthNames: ['Январь','Февраль','Март','Апрель','Май','Июнь', 'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+						monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июнь', 'Июль', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+						dayNames: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+						dayNamesShort: ['Вос', 'Пон', 'Втор', 'Сре', 'Чет', 'Пят', 'Суб'],
+						dayNamesMin: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
+						weekHeader: 'Wk',
+						dateFormat: 'mm/dd/yy',
+						firstDay: 1,
+						showButtonPanel: false,
+						showHour: false,
+						showMinute: false,
+						showTime: false,
+						defaultDate: defaultDate,
+						onChangeMonthYear: function(year, month, data) {
+							dates = getEvents(year, month);
+							month_events = null;
+							current_event_date = null;
+							if(dates != null) {
+								month_events = dates['month_events'];
+								current_event_date = dates['current_event_date'];
+								dates = dates['output'];
+							}
+							$(".events_news .evetns_cont").html('');
+							$(".events_news .pager").html('');
+							//$(".events_news .month_events .month_events_list").html('');
+							$(".events_news .month_events .month_events_list").html(month_events);
+							if(month_events == null) {
+								$(".events_news .month_events").hide(0);
+							} else {
+								$(".events_news .month_events").show(0);
+							}
+							
+							if($('.events_news .month_events_list ul').length) {
+								ul_height = parseInt($('.events_news .month_events_list ul').height());
+								if(ul_height > parseInt($('.events_news .month_events_list').height())) {
+									ul_height = ul_height - parseInt($('.events_news .month_events_list').height());
+									animate_month_events($('.events_news .month_events_list ul'), (-1)*ul_height, 50, ul_height);
+								}
+							}
+						},
+						onSelect: function(dateText, inst) {
+							var date = $.datepicker.formatDate('yy-mm-dd', new Date(inst.currentYear, inst.currentMonth, inst.currentDay));	
+							$(".events_news .evetns_cont").html('');
+							$(".events_news .pager").html('');
+							current_event_date = date;
+							return false;
+						},
+						beforeShowDay: function(d) {
+							var date = $.datepicker.formatDate('yy-mm-dd', d);
+							if(dates!=null) {
+								var date_str = date.toString()+'';
+								if(dates[date_str]) {
+									if(current_event_date == date_str) {
+										$(".events_news .evetns_cont").append(dates[date_str]['html']);
+										$(".events_news .pager").append(dates[date_str]['pager']);
+										return [true, 'news_events current_event'];
+									} else {
+										return [true, 'news_events'];
+									};
+								};
+							} else {
+								$(".events_news .evetns_cont").html('');
+							};
+							return [false];
+						}
+					});
+				};
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'announce': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			AnnounseSlider = function(module_id,params) {
+				$('#announse_list').addClass('announse_slider');
+				$('#announse_list .last_li').remove();
+				var container = $('#announse_list .slider_block');
+				var ul = $('#announse_list ul');
+				var left_arrow = $('#announse_list .left_arrow');
+				var right_arrow = $('#announse_list .right_arrow');
+				var step = ul.find('li').outerWidth();
+				var ul_count = ul.find('li:visible').length;
+				var ul_width = ul.find('li:visible').length * step;
+				var speed = 200;
+				var type = 'swing';
+				var animate = false;
+				var load_news = false;
+				
+				left_arrow.hide(0);
+				
+				LoadNews = function() {
+					container.find('.loading_bg').show(0);
+					var request = {'module': module_id, 'params': 'announse_ajax;'+params, 'skip': ul_count, 'mode': 'html_code'};
+					$.ajax({  
+						url: '/ajax_mode/',             // указываем URL 
+						type: 'POST',
+						cache: false,
+						data: request,
+						complete: function(data, textStatus){
+							animate = load_news = false;
+							if(textStatus != 'error') {
+								var container_width = container.outerWidth();
+								var ul_new = document.getElementById('announse_list').getElementsByTagName('ul')[0];
+								ul_new.innerHTML = ul_new.innerHTML + data.responseText;								
+								ul_count = ul.find('li:visible').length;
+								ul_width = ul.find('li:visible').length * step;
+								NewsAnnonce();
+								container.find('.loading_bg').hide(0);
+								if(ul_width <= container_width) {
+									LoadNews();
+								}
+							};
+						}
+					});
+				};
+				
+				if(ul_width <= container.outerWidth()) { 
+					LoadNews();
+				};
+				
+				left_arrow.click(function() {
+					if(ul.find('li.open').hasClass('open')) {
+						return false;
+					};
+					var container_width = container.outerWidth();
+					var ul_margin_left = parseInt(ul.css('margin-left'));
+					if(ul_margin_left < 0 && !animate) {
+						animate = true;
+						var st = (step + ul_margin_left > 0) ? (-1)*ul_margin_left : step;
+						ul.animate({'margin-left': (ul_margin_left + st)+'px'}, speed, type, function() {
+							animate = false;
+							ul_margin_left = parseInt(ul.css('margin-left'));
+							if(ul_margin_left >= 0) {				
+								left_arrow.hide(0);
+							};
+						});
+					};
+					return false;
+				});
+				right_arrow.click(function() {
+					if(ul.find('li.open').hasClass('open')) {
+						return false;
+					};
+					left_arrow.show(0);
+					var container_width = container.outerWidth();
+					var ul_margin_left = parseInt(ul.css('margin-left'));
+					if((ul_margin_left + ul_width) > container_width && !animate) {
+						animate = true;
+						var st = ((ul_width + ul_margin_left) - container_width < step) ? ((ul_width + ul_margin_left) - container_width) : step;
+						//alert(((ul_width + ul_margin_left) - container_width) / step);
+						
+						ul.animate({'margin-left': (ul_margin_left - st)+'px'}, speed, type, function() {					
+							if(((ul_width + ul_margin_left) - container_width) / step < 3) {
+								animate = true;
+								LoadNews();
+								/*container.find('.loading_bg').show(0);
+								var request = {'module': module_id, 'params': 'announse_ajax;'+params, 'skip': ul_count, 'mode': 'html_code'};
+								$.ajax({  
+									url: '/ajax_mode/',             // указываем URL 
+									type: 'POST',
+									cache: false,
+									data: request,
+									complete: function(data, textStatus){
+										animate = false;
+										if(textStatus != 'error') {
+											var ul_new = document.getElementById('announse_list').getElementsByTagName('ul')[0];
+											ul_new.innerHTML = ul_new.innerHTML + data.responseText;								
+											ul_count = ul.find('li:visible').length;
+											ul_width = ul.find('li:visible').length * step;
+											NewsAnnonce();
+											container.find('.loading_bg').hide(0);
+										};
+									}
+								});*/
+							} else {
+								animate = false;
+							};
+						});
+					};
+					return false;
+				});
+				$(window).resize(function(){
+					var container_width = container.outerWidth();
+					var ul_margin_left = parseInt(ul.css('margin-left'));
+					if(ul_width > container_width) {
+						animate = false;
+						if(ul_width + ul_margin_left < container_width) {
+							ul.css('margin-left', (ul_width - container_width)+'px');
+						};
+					} else {
+						animate = true;
+						if(!load_news) {
+							load_news = true;
+							LoadNews();
+						};
+					};
+				});
+				return false;
+			};
+			
+			
+			NewsAnnonce = function() {
+				var news_annonse = document.getElementById('news_annonse');
+				if(news_annonse) {
+					var em = news_annonse.getElementsByTagName('em');
+					var ul = news_annonse.getElementsByTagName('ul')[0];
+					var li = ul.getElementsByTagName('li');
+					var no_open = false;
+					ul.className = '';
+					var classClose ='close';
+					var classOpen = 'open';
+					var re_close = new RegExp('\\\\b' + classClose + '\\\\b');
+					var re_open = new RegExp('\\\\b' + classOpen + '\\\\b');			
+					for(var j = 0; j < em.length; j++) {
+						if(re_close.test(em[j].className)) {
+							em[j].onclick = function() {
+								if(no_open) {
+									this.parentNode.parentNode.className = '';
+									no_open = false;
+								}						
+							};
+						}
+						if(re_open.test(em[j].className)) {
+							em[j].onclick = function() {
+								if(!no_open) {
+									this.parentNode.parentNode.className = 'open';
+									no_open = true;
+								};
+							};
+						};
+					};
+				};
+			};
+			NewsAnnonce();
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'detail': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			ChangeTitle = function(elem, title, descr) { 
+				if (elem && typeof(elem)=='object') {
+					hrefs = elem.getElementsByTagName('A');
+					for (i=0; i < hrefs.length; i++) {
+						hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /title=(\S+)/, '&title='+encodeURI(title)));
+						if (descr) {
+							hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /descr=(\S*)/, '&descr='+encodeURI(descr)));
+						};
+					};
+				};
+			};
+			
+			YandexActivate = function(params) {
+				setTimeout(
+					function () {
+						ChangeTitle(document.getElementById('yandex_icons'), params, false);
+					}
+				, 0);
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'calendar': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			var curMonth = new Date().getMonth(); 
+			var curYear = new Date().getFullYear();
+			var monthes = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+			var href_base = '';
+			var module_id = null;
+			InitCalendar = function(mid,year,month,hbase) {
+				if(year!=null) {
+					curMonth = month;
+					curYear = year;
+				};
+				module_id = mid;
+				href_base = hbase;
+			};
+			
+			changeDate = function(dir) {				
+				curMonth += dir;
+				if (curMonth > 11) {
+					curMonth = 0;
+					curYear++;
+				} else if(curMonth < 0){
+					curMonth = 11;
+					curYear--;
+				};
+				$('#curMonth').html(monthes[curMonth]);
+				$('#curYear').html(curYear);
+				$('#monthNewsHref').attr('href', href_base+'?date='+curYear+'-'+((curMonth+1)<10 ? '0'+(curMonth+1) : curMonth+1));
+				redrawCalendar(curMonth, curYear);
+			};
+			
+			redrawCalendar = function(newMonth, newYear) {
+				newMonth =  (newMonth+1)<10 ? '0'+(newMonth+1) : newMonth+1;
+				var request = {'module': module_id, 'params': 'calendar;0', 'search_date': curYear+ '-' + newMonth +'-', 'pid_cat': 18 };
+				$.ajax({
+					type: 'POST',
+					url: '/ajax_mode/', 
+					data: request,
+					success: function( data ) {						
+						calendarCells = $('#calendar td');
+						calendarCells.each(function(){this.innerHTML = ''; this.className = 'day';});
+						
+						date = new Date();
+						month = date.getMonth();
+						year = date.getFullYear();
+						daynum = date.getDate();
+						prev_month = month > 0 ? month - 1 : 11;
+						next_month =  month < 11 ? month + 1 : 0;
+						
+						skip = new Date(newYear, newMonth-1, 1).getDay()-1;
+						daysInMonth = (32 - new Date(newYear, newMonth-1, 32).getDate());
+						day = 1;
+						pos = 0;
+						for(i = 0; i < 6; i++) {
+							for(j = 0; j < 7; j++) {
+								if((skip > 0) || (day > daysInMonth)) { 
+									skip--;
+								} else {
+									if((daynum==day)&&(month==newMonth-1)&&(year==newYear)) { 
+										calendarCells.eq(pos).attr('class', 'today');
+									};
+									expr = ','+day+',';
+									calendarCells.eq(pos).html(day);
+									if (data.indexOf(expr)!=-1) {
+										calendarCells.eq(pos).wrapInner('<a  href="'+href_base+'?date='+newYear+'-'+newMonth+'-'+(day <10 ? '0'+day : day )+'" class="newsDateHref" />');
+									};
+									day++;
+								};
+								pos++; 
+							};	
+						};
+						//$('.newsDateHref').bind('click', function() {return showNewsByDate(newYear+"-"+newMonth+"-"+(Number($(this).text()) <10 ? '0'+$(this).text() : $(this).text() ))});
+					}
+				});
+				return;
+			};
+			
+			function showNewsByDate(date) {
+				if (!date) {
+					date = curYear+'-'+((curMonth+1)<10 ? '0'+(curMonth+1) : curMonth+1);
+				};				
+				
+				var request = {'module': module_id, 'params': 'calendar;0', 'search_date': curYear+ '-' + curMonth +'-', 'pid_cat': 18 };
+				$.ajax({
+					type: 'POST',
+					url: '/ajax_mode/', 
+					data: request,
+					success: function( data ) {
+						alert(data);
+					}  
+				});
+				return false;
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case '': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+		
+		});
+	</script>
+END;
+		}
+		break;
+	}
+}
+
+/*$EE["head_extra3"][] = "
+	<script type=\"text/javascript\">
+	". ( (isset($MODULE_OUTPUT['mode']) && $MODULE_OUTPUT['mode']=='calendar') ? ( isset($MODULE_OUTPUT['year']) ? "
+	var curMonth = ".($MODULE_OUTPUT['month']-1)."; 
+	var curYear = ".$MODULE_OUTPUT['year'].";
+	" : "
+	var curMonth = new Date().getMonth(); 
+	var curYear = new Date().getFullYear();
+	")."
+	var monthes = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+	
+	function changeDate(dir) {
+		
+		curMonth += dir;
+		if (curMonth > 11) {
+			curMonth = 0;
+			curYear++;
+		} else if (curMonth < 0){
+			curMonth = 11;
+			curYear--;
+		}
+		$('#curMonth').html(monthes[curMonth]);
+		$('#curYear').html(curYear);
+		$('#monthNewsHref').attr('href', '".$MODULE_OUTPUT['href_base']."?date='+curYear+'-'+((curMonth+1)<10 ? '0'+(curMonth+1) : curMonth+1));
+		redrawCalendar(curMonth, curYear);
+	}
+	
+	function redrawCalendar(newMonth, newYear) {
+		newMonth =  (newMonth+1)<10 ? '0'+(newMonth+1) : newMonth+1;
+		var request = {'module': " .$MODULE_OUTPUT['module_id']. ", 'page_uri': '" .$Engine->EngineUri(). "', 'params': 'calendar;0', 'search_date': curYear+ '-' + newMonth +'-', 'pid_cat': 18 };
+		$.ajax({
+		    type: 'POST',
+			url: '/ajax_mode/', 
+			data: request,
+			success: function( data ) {
+				
+				calendarCells = $('#calendar td');
+				calendarCells.each(function(){this.innerHTML = ''; this.className = 'day';});
+				
+				date = new Date();
+				month = date.getMonth();
+				year = date.getFullYear();
+				daynum = date.getDate();
+				prev_month = month > 0 ? month - 1 : 11;
+				next_month =  month < 11 ? month + 1 : 0;
+						
+				skip = new Date(newYear, newMonth-1, 1).getDay()-1;
+				daysInMonth = (32 - new Date(newYear, newMonth-1, 32).getDate());
+				day = 1;
+				pos = 0;
+				for(i = 0; i < 6; i++) { 
+					for(j = 0; j < 7; j++) {
+								if((skip > 0) || (day > daysInMonth)) { 
+									skip--;
+							
+								} else	{
+									if ((daynum==day)&&(month==newMonth-1)&&(year==newYear)){ 
+										calendarCells.eq(pos).attr('class', 'today');
+								 	}
+								 	expr = ','+day+',';
+								 	calendarCells.eq(pos).html(day);
+								 	if (data.indexOf(expr)!=-1)
+								 		 calendarCells.eq(pos).wrapInner('<a  href=\" ".$MODULE_OUTPUT['href_base']."\?date='+newYear+'-'+newMonth+'-'+(day <10 ? '0'+day : day )+'\" class=\"newsDateHref\" />');
+								 	day++;
+								}
+					pos++; 
+					}	
+				}  
+				//$('.newsDateHref').bind('click', function() {return showNewsByDate(newYear+\"-\"+newMonth+\"-\"+(Number($(this).text()) <10 ? '0'+$(this).text() : $(this).text() ))});
+		   			 }
+				});
+		return;
+	}
+	
+	
+	
+	function showNewsByDate(date) {
+		if (!date)
+			date = curYear+'-'+((curMonth+1)<10 ? '0'+(curMonth+1) : curMonth+1);
+		
+		
+		var request = {'module': " .$MODULE_OUTPUT['module_id']. ", 'page_uri': '" .$Engine->EngineUri(). "', 'params': 'calendar;0', 'search_date': curYear+ '-' + curMonth +'-', 'pid_cat': 18 };
+		$.ajax({
+		    type: 'POST',
+			url: '/ajax_mode/', 
+			data: request,
+			success: function( data ) {
+				
+					alert(data);
+				}  
+				
+				});
+	
+		
+		return false;
+	}" : "")."
+	
+	/*function change_title(elem, title, descr) { 
+		if (elem && typeof(elem)=='object') {
+			hrefs = elem.getElementsByTagName('A');
+			for (i=0; i < hrefs.length; i++) {
+				hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /title=(\S+)/, '&title='+encodeURI(title)));
+				if (descr)
+					hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /descr=(\S*)/, '&descr='+encodeURI(descr)));
+			}
+		}
+	}*/
+	
+	
+	/*function announse_slider() {
+		jQuery('#announse_list').addClass('announse_slider');
+		jQuery('#announse_list .last_li').remove();
+		var container = jQuery('#announse_list .slider_block');
+		var ul = jQuery('#announse_list ul');
+		var left_arrow = jQuery('#announse_list .left_arrow');
+		var right_arrow = jQuery('#announse_list .right_arrow');
+		var step = ul.find('li').outerWidth();
+		var ul_count = ul.find('li:visible').length;
+		var ul_width = ul.find('li:visible').length * step;
+		var speed = 200;
+		var type = 'swing';
+		var animate = false;
+		
+		left_arrow.hide(0);
+		
+		left_arrow.click(function() {
+			if(ul.find('li.open').hasClass('open')) {
+				return false;
+			}
+			var container_width = container.outerWidth();
+			var ul_margin_left = parseInt(ul.css('margin-left'));
+			if(ul_margin_left < 0 && !animate) {
+				animate = true;
+				var st = (step + ul_margin_left > 0) ? (-1)*ul_margin_left : step;
+				ul.animate({'margin-left': (ul_margin_left + st)+'px'}, speed, type, function() {
+					animate = false;
+					ul_margin_left = parseInt(ul.css('margin-left'));
+					if(ul_margin_left >= 0) {				
+						left_arrow.hide(0);
+					}
+				});
+			}
+			return false;
+		});
+		right_arrow.click(function() {
+			if(ul.find('li.open').hasClass('open')) {
+				return false;
+			}
+			left_arrow.show(0);
+			var container_width = container.outerWidth();
+			var ul_margin_left = parseInt(ul.css('margin-left'));
+			if((ul_margin_left + ul_width) > container_width && !animate) {
+				animate = true;
+				var st = ((ul_width + ul_margin_left) - container_width < step) ? ((ul_width + ul_margin_left) - container_width) : step;
+				//alert(((ul_width + ul_margin_left) - container_width) / step);
+				
+				ul.animate({'margin-left': (ul_margin_left - st)+'px'}, speed, type, function() {					
+					if(((ul_width + ul_margin_left) - container_width) / step < 3) {
+						animate = true;
+						container.find('.loading_bg').show(0);
+						var request = {'module': " .$MODULE_OUTPUT['module_id']. ", 'page_uri': '" .$Engine->EngineUri(). "', 'params': 'announse_ajax;1;24;0;10;0;image', 'skip': ul_count, 'mode': 'html_code'};
+						jQuery.ajax({  
+							url: '/ajax_mode/',             // указываем URL 
+							type: 'POST',
+							cache: false,
+							data: request,
+							complete: function(data, textStatus){
+								animate = false;
+								if(textStatus != 'error') {
+									var ul_new = document.getElementById('announse_list').getElementsByTagName('ul')[0];
+									ul_new.innerHTML = ul_new.innerHTML + data.responseText;								
+									ul_count = ul.find('li:visible').length;
+									ul_width = ul.find('li:visible').length * step;
+									news_annonse();
+									container.find('.loading_bg').hide(0);
+								}
+							}
+						});
+					} else {
+						animate = false;
+					}
+				});
+			}
+			return false;
+		});
+		jQuery(window).resize(function(){
+			var container_width = container.outerWidth();
+			var ul_margin_left = parseInt(ul.css('margin-left'));
+			if(ul_width > container_width) {
+				animate = false;
+				if(ul_width + ul_margin_left < container_width) {
+					ul.css('margin-left', (ul_width - container_width)+'px');
+				}
+			} else {
+				animate = true;
+			}
+		});
+		return false;
+	}
+	var browserName = navigator.appName;*/
+	/*if(browserName == 'Microsoft Internet Explorer') {
+		//window.attachEvent('onload', news_annonse);		
+		//window.attachEvent('onload', yandex_activate);
+		//window.attachEvent('onload', announse_slider);
+	} else {
+		//window.addEventListener('load' , news_annonse, false);		
+		//window.addEventListener('load' , yandex_activate, false);	
+		//window.addEventListener('load' , announse_slider, false);
+	}*/
+	
+	/*function set_handlers() {
+		yandexer = document.getElementById('yandex_icons');
+		if (yandexer) {
+			if (yandexer.addEventListener) {
+				yandexer.addEventListener('mouseover', change_title, false);
+			} else {
+				yandexer.attachEvent('onmouseover', change_title);
+			}
+		}
+	}
+	
+	function yandex_activate() {
+		setTimeout(
+			function () {
+				change_title(document.getElementById('yandex_icons'), '".(isset($EE['footsteps'][count($EE['footsteps'])-1]['title']) ? $EE['footsteps'][count($EE['footsteps'])-1]['title'] : "")."', false);
+			} 
+		, 0);
+	}*/
+	
+	/*function news_annonse() {
+		var news_annonse = document.getElementById('news_annonse');
+		if(news_annonse) {
+			var em = news_annonse.getElementsByTagName('em');
+			var ul = news_annonse.getElementsByTagName('ul')[0];
+			var li = ul.getElementsByTagName('li');
+			var no_open = false;
+			ul.className = '';
+			var classClose ='close';
+			var classOpen = 'open';
+			var re_close = new RegExp('\\\\b' + classClose + '\\\\b');
+			var re_open = new RegExp('\\\\b' + classOpen + '\\\\b');			
+			for(var j = 0; j < em.length; j++) {
+				if(re_close.test(em[j].className)) {
+					em[j].onclick = function() {
+						if(no_open) {
+							this.parentNode.parentNode.className = '';
+							no_open = false;
+						}						
+					};
+				}
+				if(re_open.test(em[j].className)) {
+					em[j].onclick = function() {
+						if(!no_open) {
+							this.parentNode.parentNode.className = 'open';
+							no_open = true;
+						}						
+					};
+				}
+			}
+		}		
+	}	
+</script>";*/
+
+
+?>
