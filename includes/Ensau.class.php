@@ -1,7 +1,7 @@
 <?php
 class Ensau
-// version: 3.14
-// date: 2013-11-26
+// version: 3.15
+// date: 2013-12-04
 {
     var $module_id;
     var $node_id;
@@ -56,7 +56,7 @@ class Ensau
         switch ($this->mode = $parts2[0])
         {
             case "speciality":
-                $this->output["scripts_mode"] = $this->output["mode"] = "speciality";
+                $this->output["scripts_mode"] = $this->output["mode"] = "speciality"; 
                 $this->speciality($this->module_uri);
                 break;
             case "specialities":
@@ -428,7 +428,7 @@ class Ensau
             break;
 			
             case "student_registr": {
-                $this->output["mode"] = "student_registr";
+                $this->output["scripts_mode"] = $this->output["mode"] = "student_registr";
                 $this->studentRegistration();
 			}
             break;
@@ -2538,6 +2538,22 @@ class Ensau
 			while ($row = $DB->FetchAssoc($res)) {
 				$this->output["directory"][] = $row;
 			}
+			
+			$DB->SetTable($this->db_prefix."specialities");
+			$DB->AddCondFS("old", "=", 1);
+			
+			$res_old = $DB->Select();
+			while ($row_old = $DB->FetchAssoc($res_old)) {
+				$this->output["old_specs"][$row_old["id"]] = $row_old;
+			}
+			
+			$DB->SetTable($this->db_prefix."qualifications");			
+				
+			$res_qual = $DB->Select();
+			while ($row_qual = $DB->FetchAssoc($res_qual)) {
+				$this->output["qualifications"][$row_qual["id"]] = $row_qual;
+			}
+			
 			if ($_POST["action_op"]=="add") { //Добавление специальности с уровнем подготовки
 				$this->output["form_back"]["code_add"] = $_POST["code_add"];
 				$this->output["form_back"]["speciality_name"] = $_POST["speciality_name"];
@@ -2545,17 +2561,20 @@ class Ensau
 				$this->output["form_back"]["description"] = $_POST["description"];
 				$this->output["form_back"]["year_open"] = $_POST["year_open"];
 				$this->output["form_back"]["type"] = $_POST["type"];
+				$this->output["form_back"]["old_spec"] = $_POST["old_spec"];
 				$this->output["form_back"]["has_vacancies"] = empty($_POST["has_vacancies"]) ? 0 : 1;
 				$this->output["form_back"]["internal_tuition"] = empty($_POST["internal_tuition"]) ? 0 : 1;
 				$this->output["form_back"]["correspondence_tuition"] = empty($_POST["correspondence_tuition"]) ? 0 : 1;
 				
-				if(!isset($_POST["code_add"]) || !CF::IsNaturalNumeric($_POST["code_add"]) || empty($_POST["code_add"])) {
+				$this->output["form_back"]["qualification"] = $_POST["qualification"];
+				
+				if(!isset($_POST["code_add"]) /*|| !CF::IsNaturalNumeric($_POST["code_add"]) */ || empty($_POST["code_add"])) {
 					$this->output["messages"]["bad"][] = "Не указан код специальности.";
 				} elseif(!isset($_POST["speciality_name"]) || empty($_POST["speciality_name"])) {
 					$this->output["messages"]["bad"][] = "Не указано название специальности.";
 				} elseif(!isset($_POST["direction"]) || $_POST["direction"] == "0" || empty($_POST["direction"])) {
 					$this->output["messages"]["bad"][] = "Не выбранно направление.";
-				} elseif(!isset($_POST["type"]) || $_POST["type"] == "0" || empty($_POST["type"])) {
+				} elseif((!isset($_POST["type"]) || $_POST["type"] == "0" || empty($_POST["type"])) && (!isset($_POST["qualification"]) || $_POST["qualification"] == "0" || empty($_POST["qualification"])) ) {
 					$this->output["messages"]["bad"][] = "Уровень подготовки не выбран.";
 				} else {
 					$DB->SetTable($this->db_prefix."specialities");
@@ -2565,6 +2584,9 @@ class Ensau
 					$DB->AddValue("direction", $_POST["direction"]);
 					$DB->AddValue("description", $_POST["description"]);
 					$DB->AddValue("year_open", $_POST["year_open"]);
+					
+					$DB->AddValue("old", 0);
+					$DB->AddValue("old_id", (int)$_POST["old_spec"]);
 						
 					if(!empty($_POST["data_training"]) && $_POST["type"] == "secondary") {
 						$DB->AddValue("data_training", $_POST["data_training"]);
@@ -2576,10 +2598,16 @@ class Ensau
 						$DB->SetTable($this->db_prefix."spec_type");
 						$DB->AddValue("spec_id", $spec_id);
 						$DB->AddValue("code", $_POST["code_add"]);
-						$DB->AddValue("type", $_POST["type"]); 
-						$DB->AddValue("type_code", $spec_type[1][$_POST["type"]]); 
+						if(!empty($_POST["type"])) {
+							$DB->AddValue("type", $_POST["type"]); 
+							$DB->AddValue("type_code", $spec_type[1][$_POST["type"]]);
+						} 
 						$DB->AddValue("year_open", $_POST["year_open"]);
 						//$DB->AddValue("has_vacancies", $_POST["has_vacancies"]);
+						
+						if(!empty($_POST["qualification"])) {
+							$DB->AddValue("qual_id", $_POST["qualification"]);
+						}
 						
 						if(empty($_POST["has_vacancies"])) {
 							$DB->AddValue("has_vacancies", 1);
@@ -2646,6 +2674,12 @@ class Ensau
 			if($row = $DB->FetchAssoc($res)) {
 				$this->output["spec_info"] = $row;
 			};
+      $DB->SetTable($this->db_prefix."qualifications");
+			
+			$res_qual = $DB->Select();
+			while ($row_qual = $DB->FetchAssoc($res_qual)) {
+				$this->output["qualifications"][$row_qual["id"]] = $row_qual;
+			}
 			if (!empty($_POST["action_sub"]) && $_POST["action_sub"]=="add_spec_type") {
 				$this->output["form_back"]["type_sub"] = $_POST["type_sub"];
 				$this->output["form_back"]["year_open_sub"] = $_POST["year_open_sub"];
@@ -2653,6 +2687,7 @@ class Ensau
 				$this->output["form_back"]["has_vacancies"] = empty($_POST["has_vacancies"]) ? 0 : 1;
 				$this->output["form_back"]["internal_tuition_sub"] = empty($_POST["internal_tuition_sub"]) ? 0 : 1;
 				$this->output["form_back"]["correspondence_tuition_sub"] = empty($_POST["correspondence_tuition_sub"]) ? 0 : 1;
+        $this->output["form_back"]["qualification"] = $_POST["qualification"];
 				
 				if(!isset($_POST["type_sub"]) || $_POST["type_sub"] == "0" || empty($_POST["type_sub"])) {
 					$this->output["messages"]["bad"][] = "Уровень подготовки не выбран.";
@@ -2681,6 +2716,9 @@ class Ensau
 					} else {
 						$DB->AddValue("has_vacancies", 0);
 					}
+          if(!empty($_POST["qualification"])) {
+            $DB->AddValue("qual_id", $_POST["qualification"]);
+          }
 					if($DB->Insert()) {
 						$this->output["messages"]["good"][] = "Уровень обучения специальности успешно добавлен.";
 						if($_POST["type_sub"] == "secondary" && !empty($_POST["data_training"])) {
@@ -2776,6 +2814,17 @@ class Ensau
 			while ($row=$DB->FetchAssoc($res)) {
 				$this->output["faculty"][]=$row;
 			};
+      
+      $file_types = array('ФГОС', 'Учебный план', 'График учебного процесса');
+      $this->output['file_types'] = $file_types; 
+      
+      $this->output["files"] = array();
+      $DB->SetTable("nsau_files");
+      $DB->AddCondFS("user_id", "=", $Auth->user_id);
+      $res = $DB->Select();
+      while($row = $DB->FetchAssoc($res)) {
+        $this->output['files'][$row['id']] = $row;
+      }
 			
 			$DB->SetTable($this->db_prefix."specialities", "s");
 			$DB->AddField("id");
@@ -2784,12 +2833,22 @@ class Ensau
 			$DB->AddField("s.name");
 			$DB->AddField("s.direction");
 			$DB->AddField("s.description");
+			$DB->AddField("s.old");
+      $DB->AddField("s.old_id"); 
 			$DB->AddCondFS("id", "=", $pars[1]);
 			$res=$DB->Select();
 			$this->output["speciality"]=array();
 			if($row=$DB->FetchAssoc($res)) {
 				$this->output["speciality"]=$row;
 			};
+      
+      $DB->SetTable($this->db_prefix."specialities");
+			$DB->AddCondFS("old", "=", 1);
+			
+			$res_old = $DB->Select();
+			while ($row_old = $DB->FetchAssoc($res_old)) {
+				$this->output["old_specs"][$row_old["id"]] = $row_old;
+			}
 			
 			$DB->SetTable($this->db_prefix."spec_type","st");
 			$DB->AddTable($this->db_prefix."specialities","spec");
@@ -2803,6 +2862,7 @@ class Ensau
 			$DB->AddField("st.qualification"); 
 			$DB->AddField("st.description"); 
 			$DB->AddField("st.has_vacancies");
+			$DB->AddField("st.qual_id");
 			$DB->AddCondFF("st.code", "=", "spec.code");
 			$DB->AddCondFF("st.spec_id", "=", "spec.id");
 			$DB->AddCondFS("st.spec_id", "=", $pars[1]);
@@ -2829,12 +2889,35 @@ class Ensau
 				$this->output["exams"][] = $row;
 			}
 			
+			$DB->SetTable($this->db_prefix."qualifications");
+			
+			$res_qual = $DB->Select();
+			while ($row_qual = $DB->FetchAssoc($res_qual)) {
+				$this->output["qualifications"][$row_qual["id"]] = $row_qual;
+			}
+			
 			$DB->SetTable($this->db_prefix."profiles");
 			$DB->AddCondFS("spec_id", "=", $pars[1]);
 			$res = $DB->Select();
 			while($row = $DB->FetchAssoc($res))	{
 				$this->output["profiles"][] = $row; 
 			}
+      
+      $this->output["spec_files"] = array();  
+      
+      $DB->SetTable($this->db_prefix."spec_files");
+      $DB->AddCondFS("spec_id", "=", $pars[1]);
+      $res = $DB->Select();
+			while($row = $DB->FetchAssoc($res))	{
+				$this->output["spec_files"][$row["file_type"]][$row["qual_id"]] = $row;
+        $DB->SetTable("nsau_files");
+        $DB->AddCondFS("id", "=", $row["file_id"]);
+        $res_file = $DB->Select();
+        while($row_file = $DB->FetchAssoc($res_file)) {
+          $this->output['files'][$row_file['id']] = $row_file;
+        } 
+			}
+            
 			if (!empty($_POST["spec_id"]))	{					
 				$DB->SetTable($this->db_prefix."specialities", "s");
 				$DB->AddCondFS("s.id", "=", $_POST["spec_id"]);
@@ -2845,6 +2928,13 @@ class Ensau
 				$DB->AddValue("s.name", $_POST["speciality_name"]);
 				$DB->AddValue("s.direction", $_POST["direction"]);
 				$DB->AddValue("s.description", $_POST["description"]);
+        
+        if(preg_match('/\d{2}\.\d{2}\.\d{2}/', $_POST['code'])) {
+          $DB->AddValue('old', 0);
+        }
+        
+        $DB->AddValue("old_id", (int)$_POST["old_spec"]);
+        
 				if($DB->Update()) {
 					$Engine->LogAction($this->module_id, "specialities", $_POST["spec_id"], "update");
 					foreach ($_POST['spec_type'] as $type => $edit_type ) {
@@ -2856,6 +2946,7 @@ class Ensau
 						$DB->AddValue("st.type_code", $spec_type[1][$edit_type["type"]]);
 						$DB->AddValue("st.data_training", $edit_type["data_training"]);
 						$DB->AddValue("st.qualification", $edit_type["qualification"]);
+            $DB->AddValue("st.qual_id", $edit_type["qual_id"]);
 						$DB->AddValue("st.description", $edit_type["description"]);
 						$DB->AddValue("st.year_open", $edit_type["year_open"]);
 						
@@ -2873,7 +2964,7 @@ class Ensau
 							$DB->AddValue("st.correspondence_tuition", 1);
 						} else {
 							$DB->AddValue("st.correspondence_tuition", 0);
-						};
+						};//echo $DB->UpdateQuery(); echo $edit_type["st_type_id"]; exit; 
 						if($DB->Update()) {
 							$Engine->LogAction($this->module_id, "spec_type", $edit_type["st_type_id"], "update");
 						} else {
@@ -2990,11 +3081,92 @@ class Ensau
 							}
 						}
 					}
+          
+          if(isset($_POST['spec_file'])) { 
+            $DB->SetTable($this->db_prefix."spec_files");
+            $DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
+            $DB->Delete();
+            foreach($_POST['spec_file'] as $file_type => $quals) {
+              foreach($quals as $spec_type_id => $file_id){
+                if($file_id == 0) continue;
+                $qual_id = $_POST['spec_type'][$spec_type_id]['qual_id']; 
+                $DB->SetTable($this->db_prefix."spec_files");
+                $DB->AddValue("spec_id", $_POST["spec_id"]);
+                $DB->AddValue("qual_id", $qual_id);
+                $DB->AddValue("file_type", $file_type);
+                $DB->AddValue("file_id", $file_id); 
+                $DB->Insert(); 
+              }
+            } 
+          }
+          
 					$this->output["messages"]["good"][] = "Редактирование прошло успешно.";
 					CF::Redirect($Engine->engine_uri);
 				} else {
 					$this->output["messages"]["bad"][] = "Ошибка при редактировании специальности.";
 				}
+			}
+		}
+		elseif(isset($pars[0]) && !empty($pars[0]) && $pars[0] == "manage_qualifications") {
+			$this->output["sub_mode"] = "manage_qualifications";
+			
+			if(isset($_SESSION[$pars[0]]["messages"])) {
+				$this->output["messages"] = $_SESSION[$pars[0]]["messages"];
+				unset($_SESSION[$pars[0]]["messages"]);
+			}
+			
+			$DB->SetTable($this->db_prefix."qualifications");
+			$res = $DB->Select();
+			while ($row = $DB->FetchAssoc($res)) {
+				$this->output["qualifications"][$row['id']] = $row;
+			}
+			
+			if(isset($_POST["name"]) && isset($_POST["action"]) && $_POST["action"] == "add_qualification") {
+				$DB->SetTable($this->db_prefix."qualifications");
+				$DB->AddValue("name", $_POST["name"]);
+				$DB->AddValue("old_type", $_POST["type"]);
+				if($DB->Insert()) {
+					$this->output["messages"]["good"][] = 107;
+				}
+				
+				$_SESSION[$pars[0]]["messages"] =  $this->output["messages"];
+				CF::Redirect($Engine->unqueried_uri);
+			}
+			if(isset($_POST["name"]) && isset($_POST["action"]) && $_POST["action"] == "save_qualifications") {
+				$ids = isset($_POST["id"]) ? $_POST["id"] : array();
+				foreach ($ids as $id) {
+					$DB->SetTable($this->db_prefix."qualifications");
+					$DB->AddValue("name", $_POST["name"][$id]);
+					$DB->AddValue("old_type", $_POST["type"][$id]);
+					$DB->AddCondFS("id", "=", $id);
+					//echo $DB->UpdateQuery();exit; 
+					
+					$DB->Update();
+				}
+				
+				CF::Redirect($Engine->unqueried_uri);
+			}
+			if(isset($_POST["name"]) && isset($_POST["action"]) && $_POST["action"] == "edit_qualification") {
+				$DB->SetTable($this->db_prefix."qualifications");
+				$DB->AddValue("name", $_POST["name"]);
+				$DB->AddCondFS("id", "=", $_POST["id"]);
+				if($DB->Update()) {
+					$this->output["messages"]["good"][] = 108;
+				}
+				
+				$_SESSION[$pars[0]]["messages"] =  $this->output["messages"];
+				CF::Redirect($Engine->unqueried_uri);
+			}
+			
+			if(isset($_POST["name"]) && isset($_POST["action"]) && $_POST["action"] == "delete_qualification") {
+				$DB->SetTable($this->db_prefix."qualifications");
+				$DB->AddCondFS("id", "=", $_POST["id"]);
+				if($DB->Delete()) {
+					$this->output["messages"]["good"][] = 109;
+				}
+			
+				$_SESSION[$pars[0]]["messages"] =  $this->output["messages"];
+				CF::Redirect($Engine->unqueried_uri);
 			}
 		}
 		elseif(isset($pars[0]) && !empty($pars[0])) {
@@ -3036,7 +3208,7 @@ class Ensau
 				} 
 			} */
 		 
-			$res = $DB->Exec("SELECT st.id, st.code, st.name, st.id_faculty, st.direction, st.description, f.name as fname FROM ".$this->db_prefix."specialities as st left join ".$this->db_prefix."faculties as f on st.id_faculty = f.id order by st.code");
+			$res = $DB->Exec("SELECT st.id, st.code, st.name, st.id_faculty, st.direction, st.description, st.old, f.name as fname FROM ".$this->db_prefix."specialities as st left join ".$this->db_prefix."faculties as f on st.id_faculty = f.id order by st.code");
 			$this->output["speciality_directory"] = array();
 			while ($row = $DB->FetchAssoc($res)) {
 				if ($Engine->OperationAllowed($this->module_id, "specialities.handle", (int)$row["code"], $Auth->usergroup_id))
@@ -3050,14 +3222,25 @@ class Ensau
 				$DB->AddField("year_open");
 				$DB->AddField("type");
 				$DB->AddField("has_vacancies");
+				$DB->AddField("qual_id"); 
 				$DB->AddCondFS("spec_id","=", $row['id']);
 				$res_type = $DB->Select(); 
 				$this->output["speciality"] = array();
 				$row['spec_type_count'] = 0;
 				while ($row_type = $DB->FetchAssoc($res_type)) {
-					$row['spec_type'][] = $row_type;
+					//$row['spec_type'][] = $row_type;
 					//$this->output["speciality"][] = $row;
 					$row['spec_type_count'] += 1;
+				
+					$DB->SetTable($this->db_prefix."qualifications");
+					$DB->AddCondFS("id", "=", $row_type['qual_id']);
+					
+					$res_qual = $DB->Select(1);
+					while($row_qual = $DB->FetchAssoc($res_qual)) {
+						$row_type['qualification'] = $row_qual['name'];
+					}
+					
+					$row['spec_type'][] = $row_type;//print_r($row_type);
 				}
 					
 				$this->output["speciality_directory"][] = $row;
@@ -3088,7 +3271,7 @@ class Ensau
         global $DB, $Engine, $Auth;
 		$parts = explode ("/", $module_uri);
 		if(isset($_GET['action']) && $_GET['action'] == 'add_subsection' && isset($_GET['id'])) {
-			if(!empty($parts[0]) && CF::IsNaturalNumeric($parts[0]) && CF::IsNaturalNumeric($_GET['id'])) {
+			if(!empty($parts[0]) && (CF::IsNaturalNumeric($parts[0]) || preg_match('/\d{2}\.\d{2}\.\d{2}/', $parts[0]) ) && CF::IsNaturalNumeric($_GET['id'])) {
 				$DB->SetTable($this->db_prefix."specialities");
 				$DB->AddField("id");
 				$DB->AddField("code");
@@ -3238,7 +3421,7 @@ class Ensau
    
         if (!empty($module_uri)) {
             $parts = explode ("/", $module_uri); // код специальности
-            if(!empty($parts[1]) && !CF::IsNaturalNumeric($parts[0])) {
+            if(!empty($parts[1]) && !(CF::IsNaturalNumeric($parts[0]) || preg_match('/\d{2}\.\d{2}\.\d{2}/', $parts[0]))) {
 				/*if (!empty($_POST[$this->node_id]["save"]["cancel"])) {   
 				    1;
 				} else {
@@ -3301,8 +3484,8 @@ class Ensau
 				$DB->AddField("s.name");
 				$DB->AddField("s.direction");
 				$DB->AddField("s.description");
-				
-				//$DB->AddField("s.data_training");
+        
+        //$DB->AddField("s.data_training");
 				$DB->AddCondFS("s.code", "=", $parts[1]);
 				if(isset($parts[2]) && !empty($parts[2]) && CF::IsNaturalNumeric($parts[2])) {
 					$DB->AddCondFS("s.id", "=", $parts[2]);
@@ -3395,7 +3578,7 @@ class Ensau
 				while ($row = $DB->FetchAssoc($res)) {
 				    $this->output["direction"][] = $row;
 				};
-			} elseif(CF::IsNaturalNumeric($parts[0])) {
+			} elseif(CF::IsNaturalNumeric($parts[0]) || preg_match('/\d{2}\.\d{2}\.\d{2}/', $parts[0])) {
 				/*if (!empty($_POST[$this->node_id]["save"]["cancel"])) {  
 				    1;
 				} else {
@@ -3558,17 +3741,42 @@ class Ensau
 				$DB->AddField("s.name");
 				$DB->AddField("s.direction");
 				$DB->AddField("s.description");
+        $DB->AddFields(array("s.old", "s.old_id"));
 				
 				$DB->AddCondFS("s.code", "=", $parts[0]);
 				if(isset($parts[1]) && !empty($parts[1]) && CF::IsNaturalNumeric($parts[1])) {
 					$DB->AddCondFS("s.id", "=", $parts[1]);
 				}
 				$res=$DB->Select();
+        $spec_id = $parts[1];
 				$this->output["speciality"]=array();
+        $special = null;
 				while ($row=$DB->FetchAssoc($res)) {
-					$this->output["speciality"][]=$row;
-					$code = $row["code"];
+					//$this->output["speciality"][]=$row;
+					$special = $row;
+          $code = $row["code"];
+          
+          if($row["old"] == 0) {
+            $spec_id = $row["old_id"];
+            $DB->SetTable($this->db_prefix."specialities", "s");
+            $DB->AddField("id");
+            $DB->AddField("id_faculty");
+            $DB->AddField("s.code");
+            $DB->AddField("s.name");
+            $DB->AddField("s.direction");
+            $DB->AddField("s.description");
+            $DB->AddCondFS("s.id", "=", $row["old_id"]);
+            $res_old = $DB->Select();
+            while($row_old = $DB->FetchAssoc($res_old)) {
+              $code = $row_old["code"];
+              $row_old["code"] = $row["code"];
+              $row_old["name"] = $row["name"];
+              //$this->output["speciality"][]=$row_old;
+              $special = $row_old; 
+            }
+          }
 				}
+        if($special) $this->output["speciality"][] = $special; 
 				if (!count($this->output["speciality"])) {
 					$Engine->HTTP404();
 				}
@@ -3587,9 +3795,9 @@ class Ensau
 				
 				$DB->AddCondFF("st.code", "=", "spec.code");
 				$DB->AddCondFF("st.spec_id", "=", "spec.id");
-				$DB->AddCondFS("st.code", "=", $parts[0]);
+				$DB->AddCondFS("st.code", "=", $code/*$parts[0]*/);
 				if(isset($parts[1]) && !empty($parts[1]) && CF::IsNaturalNumeric($parts[1])) {
-					$DB->AddCondFS("st.spec_id", "=", $parts[1]);
+					$DB->AddCondFS("st.spec_id", "=", $spec_id);
 				}
 				$res=$DB->Select();
 				$this->output["speciality_edit"]=array();
@@ -3633,10 +3841,10 @@ class Ensau
 				$res = $DB->Select();
 				while($row = $DB->FetchAssoc($res))	{
 					$DB->SetTable($this->db_prefix."spec_exams");
-					$DB->AddCondFS("speciality_code", "=", $parts[0]);
+					$DB->AddCondFS("speciality_code", "=", $code);
 					$DB->AddCondFS("exam_id", "=", $row["id"]);
 					if(isset($parts[1]) && !empty($parts[1]) && CF::IsNaturalNumeric($parts[1])) {
-						$DB->AddCondFS("spec_id", "=", $parts[1]);
+						$DB->AddCondFS("spec_id", "=", $spec_id);
 					}
 					$res2 = $DB->Select();
 					
@@ -7755,7 +7963,7 @@ class Ensau
 			$DB->AddCondFS("approved", "=", 1);
 			if(isset($parts[2]) && !empty($parts[2])) 
 				$DB->AddCondFS("education", "=", $parts[2]);
-			echo $DB->SelectQuery();
+			//echo $DB->SelectQuery();
 			$res_file_subj = $DB->Select();
 			while($row_file_subj = $DB->FetchAssoc($res_file_subj)) {
 				$DB->SetTable($this->db_prefix."files");
