@@ -1,7 +1,7 @@
 <?php
 class Ensau
-// version: 3.15
-// date: 2013-12-04
+// version: 3.17
+// date: 2014-02-11
 {
     var $module_id;
     var $node_id;
@@ -3268,7 +3268,15 @@ class Ensau
      
     function speciality($module_uri)
     {
-        global $DB, $Engine, $Auth;
+        global $DB, $Engine, $Auth; 
+        
+        $spec_type = array(
+			'0' => array('51'=>'secondary','68'=>'magistracy','62'=>'bachelor','65'=>'higher'),
+			'1' => array('secondary'=>'51','magistracy'=>'68','bachelor'=>'62','higher'=>'65')
+		); 
+    
+    $spec_type_name = array('secondary' => 'СПО','bachelor' => 'Бакалавриат', 'magistracy' => 'Магистратура', 'higher' => 'ВПО');
+        
 		$parts = explode ("/", $module_uri);
 		if(isset($_GET['action']) && $_GET['action'] == 'add_subsection' && isset($_GET['id'])) {
 			if(!empty($parts[0]) && (CF::IsNaturalNumeric($parts[0]) || preg_match('/\d{2}\.\d{2}\.\d{2}/', $parts[0]) ) && CF::IsNaturalNumeric($_GET['id'])) {
@@ -3484,16 +3492,22 @@ class Ensau
 				$DB->AddField("s.name");
 				$DB->AddField("s.direction");
 				$DB->AddField("s.description");
+        $DB->AddField("s.old");
+        $DB->AddField("s.old_id");
         
         //$DB->AddField("s.data_training");
 				$DB->AddCondFS("s.code", "=", $parts[1]);
+        $code = $parts[1]; 
+
 				if(isset($parts[2]) && !empty($parts[2]) && CF::IsNaturalNumeric($parts[2])) {
-					$DB->AddCondFS("s.id", "=", $parts[2]);
+					$DB->AddCondFS("s.id", "=", $parts[2]); 
+          $spec_id = $parts[2];
 				}
 				$res=$DB->Select();
 				$this->output["speciality"]=array();
 				while ($row=$DB->FetchAssoc($res)) {
-				    $this->output["speciality"][]=$row;
+				    if($row['old'] || $row['old_id'] == 0)
+            $this->output["speciality"][]=$row;
 					
 					/*if($parts[0] == "spo") {
 						if($row["data_training"] != null) {
@@ -3516,6 +3530,28 @@ class Ensau
 						$this->output["type_klass"] = "неизвестен";
 						$this->output["data_training"] = "неизвестен";
 					}*/
+          
+          if($row["old"] == 0 && $row['old_id'] != 0) {
+            $spec_id = $row["old_id"];
+            $DB->SetTable($this->db_prefix."specialities", "s");
+            $DB->AddField("id");
+            $DB->AddField("id_faculty");
+            $DB->AddField("s.code");
+            $DB->AddField("s.name");
+            $DB->AddField("s.direction");
+            $DB->AddField("s.description");
+            $DB->AddCondFS("s.id", "=", $row["old_id"]);
+            //echo $DB->SelectQuery();
+            $res_old = $DB->Select();
+            while($row_old = $DB->FetchAssoc($res_old)) {
+              $code = $row_old["code"];
+              $row_old["code"] = $row["code"];
+              $row_old["name"] = $row["name"];
+              $this->output["speciality"][]=$row_old;
+              $special = $row_old; 
+            }
+          }
+          
 				}
 				if (!count($this->output["speciality"])) {
 					$Engine->HTTP404();
@@ -3533,10 +3569,10 @@ class Ensau
 				$DB->AddField("st.description"); 
 				$DB->AddCondFF("st.code", "=", "spec.code");
 				$DB->AddCondFF("st.spec_id", "=", "spec.id");
-				$DB->AddCondFS("st.code", "=", $parts[1]);
+				$DB->AddCondFS("st.code", "=", $code);
 				$DB->AddCondFS("st.type", "=", $parts[0]);
 				if(isset($parts[2]) && !empty($parts[2]) && CF::IsNaturalNumeric($parts[2])) {
-					$DB->AddCondFS("spec.id", "=", $parts[2]);
+					$DB->AddCondFS("spec.id", "=", $spec_id);
 				}
 				
 				$res=$DB->Select();
@@ -3753,6 +3789,7 @@ class Ensau
         $special = null;
 				while ($row=$DB->FetchAssoc($res)) {
 					//$this->output["speciality"][]=$row;
+
 					$special = $row;
           $code = $row["code"];
           
@@ -3874,6 +3911,11 @@ class Ensau
 				}
 			};
 		}
+    
+    if((!CF::IsNaturalNumeric($parts[0]) || !preg_match('/\d{2}\.\d{2}\.\d{2}/', $parts[0]) ) /*isset($parts[2]) && !empty($parts[2]) && CF::IsNaturalNumeric($parts[2])*/) {
+      $Engine->AddFootstep($Engine->engine_uri.$parts[0].'/'/*$Engine->module_uri*/, $spec_type_name[$parts[0]], '', false);
+    }
+    
 		if ($this->output['speciality'][0]['name'] != '') {
 			$Engine->AddFootstep($Engine->engine_uri.$Engine->module_uri, $this->output['speciality'][0]['name'], '', false);
 			//$Engine->AddFootstep("", $this->output['speciality'][0]['name']);
@@ -3881,6 +3923,7 @@ class Ensau
         $this->output["privileges"]["specialities.handle"] = false;
         $this->output["privileges"]["specialities.handle"] = $Engine->OperationAllowed(5, "specialities.handle", -1, $Auth->usergroup_id);
     }
+
     
     function specialities($type)
     {
