@@ -2,8 +2,8 @@
 
 class EMenu
 // Модуль вывода меню
-// version: 3.4
-// date: 2012-08-07
+// version: 3.5
+// date: 2014-02-10
 {
 	var $output;
 	var $module_id;
@@ -236,7 +236,7 @@ class EMenu
 	}
 
 	function AddItem($add_mode, $group_id, $parent_id) {
-		$items = $this->FolderList(0, 4);
+		$items = $this->FolderTree(0, 4);
 		$this->output["folders"] = $items;
 		$this->output["group_id"] = $group_id;
 		$this->output["pid"] = $parent_id;
@@ -269,7 +269,9 @@ class EMenu
 		while ($row = $DB->FetchObject($res)) {
 			//if ($row["id"]==635) die("lurk");
 				if($depth-1 && $row->id)
-                    $sublist = $this->FolderList($row->id, $depth-1);
+                  $sublist = $this->FolderList($row->id, $depth-1);
+                else if($depth === false && $row->id) 
+                  $sublist = $this->FolderList($row->id, false);
                 else 
                     $sublist = NULL;
                 
@@ -290,6 +292,43 @@ class EMenu
 		return $list;
 	
 	}
+  
+  function FolderTree($pid/*, $depth = 1*/) {
+		global $DB, $Engine, $Auth;
+		$DB->SetTable("engine_folders");
+		$DB->AddCondFS("pid", "=", $pid);
+        //$DB->AddCondFP("id");
+        $DB->AddOrder("pos");        
+        
+        $list = NULL;
+		if ($res = $DB->Select())
+            $list = array(); // Список папок
+		while ($row = $DB->FetchObject($res)) {
+			//if ($row["id"]==635) die("lurk");
+				if(/*$depth-1 &&*/ $row->id)
+                  $sublist = $this->FolderTree($row->id);
+                else 
+                    $sublist = NULL;
+                
+                if($Engine->OperationAllowed(0, "folder.view", $row->id, $Auth->usergroup_id) && $Engine->OperationAllowed(0, "folder.list", $row->id, $Auth->usergroup_id))
+				    $list[$row->id] = array(
+					    //"uri" => $Engine->FolderURIbyID($row->id),
+					    "title" => $row->title,
+					    "descr" => $row->descr,
+					    "is_active" => $row->is_active,
+                        "parser_node_id" => $row->parser_node_id,
+					    /*"manage_subFolders" => $Engine->OperationAllowed(0, "folder.subFolders.handle", $row->id, $Auth->usergroup_id),
+					    "manage_systemProps" => $Engine->OperationAllowed(0, "folder.systemProps.handle", $row->id, $Auth->usergroup_id),
+                        "manage_props" => $Engine->OperationAllowed(0, "folder.props.handle", $row->id, $Auth->usergroup_id),					
+					    "manage_folder.delete" => $Engine->OperationAllowed(0, "folder.delete", $row->id, $Auth->usergroup_id),*/
+					    "subitems" => $sublist
+					);
+		}
+		return $list;
+	
+	}
+  
+			
 
 
 	function ListGroupItems($pid, $depth, $limit = null, $limit_from = null)
@@ -783,7 +822,7 @@ class EMenu
             {
                 $this->output["menu_item"] = $row;
                 $this->output["folders"] = array();
-                $items = $this->FolderList(0, 4);
+                $items = $this->FolderTree(0, false);
 				//die(print_r($items));
 				$this->output["folders"] = $items;
                

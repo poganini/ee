@@ -1,6 +1,6 @@
 <?php
-// version: 3.2
-// date: 2012-05-12
+// version: 3.3
+// date: 2014-02-10
 
 //$MODULE_OUTPUT = $MODULE_DATA["output"];
 
@@ -170,12 +170,16 @@
 			
 			if (isset($MODULE_OUTPUT["menu_item"])) { ?>
 			<h2>Редактирование пункта меню</h2>
+      <script>jQuery(document).ready(function($) {ManageMenu(<?=$MODULE_OUTPUT['module_id'];?>);});</script>
 			<form action="<?=$EE["unqueried_uri"]?>" method="post" enctype="multipart/form-data">
 				<p>
 					<strong>Соответствующая страница:</strong><br />
-					<select name="<?=$NODE_ID?>[save][folder_id]" size=1>
+					<select name="<?=$NODE_ID?>[save][folder_id]" class="menu_list" size="1">
 <?php 			OutPutFoldersOptions($MODULE_OUTPUT["folders"], $MODULE_OUTPUT["menu_item"]["folder_id"]); ?>
 					</select>
+          <input type="text" size="10" title="Быстрый поиск" placeholder="Введите часть названия" class="menu_search" style="display: none; width: 265px; " />
+				<a href="javascript: void(0)" onclick="jQuery(this).parent().find('.menu_search').show(); jQuery(this).parent().find('.menu_list').hide(); jQuery(this).hide(); " class="menu_list" title="Поиск по фрагменгту названия">Искать</a> 
+				<br /><br />
 				</p>
 				<div id="linkshow"><a style="cursor: pointer" onclick="document.getElementById('addfields').style.display='block'; document.getElementById('linkhide').style.display='block'; document.getElementById('linkshow').style.display='none';">Показать дополнительные поля</a></div>
 				<div id="linkhide" style="display: none;"><a style="cursor: pointer" onclick="document.getElementById('addfields').style.display='none'; document.getElementById('linkshow').style.display='block'; document.getElementById('linkhide').style.display='none';">Скрыть дополнительные поля</a></div>
