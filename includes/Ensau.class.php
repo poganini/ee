@@ -1,7 +1,7 @@
 <?php
 class Ensau
-// version: 3.17
-// date: 2014-02-11
+// version: 3.23
+// date: 2014-04-02
 {
     var $module_id;
     var $node_id;
@@ -62,6 +62,10 @@ class Ensau
             case "specialities":
                 $this->output["scripts_mode"] = $this->output["mode"] = "specialities";
                 $this->specialities($parts2[1]);
+                break;
+            case "library_standard":
+                $this->output["scripts_mode"] = $this->output["mode"] = "library_standard";
+                $this->library_standard($parts2[1]);
                 break;
             case "speciality_directory":
                 $this->output["scripts_mode"] = $this->output["mode"] = "speciality_directory";
@@ -2312,6 +2316,8 @@ class Ensau
 			'0' => array('51'=>'secondary','68'=>'magistracy','62'=>'bachelor','65'=>'higher'),
 			'1' => array('secondary'=>'51','magistracy'=>'68','bachelor'=>'62','higher'=>'65')
 		);
+		$spec_type_name = array('secondary' => 'СПО','bachelor' => 'Бакалавриат', 'magistracy' => 'Магистратура', 'higher' => 'ВПО');
+		$this->output["spec_type_name"] = $spec_type_name;
 		if(isset($pars[0], $pars[1]) && $pars[0] == 'curriculum' && CF::IsNaturalNumeric($pars[1]) && (!isset($pars[2]) || empty($pars[2]))) {
 			$this->output['mode'] = $pars[0];
 			$plan_id = $pars[1];
@@ -2532,19 +2538,29 @@ class Ensau
 		}
 		elseif(isset($pars[0]) && !empty($pars[0]) && $pars[0] == "add_speciality") {
 			$this->output["sub_mode"] = "add_speciality";
+			$this->output['plugins'][] = 'jquery.editable-select';
 			$DB->SetTable($this->db_prefix."school");
+		    $DB->AddOrder("name");
+		    $DB->AddOrder("code");
 			$res = $DB->Select(); 
 			$this->output["directory"] = array();
 			while ($row = $DB->FetchAssoc($res)) {
 				$this->output["directory"][] = $row;
 			}
 			
-			$DB->SetTable($this->db_prefix."specialities");
-			$DB->AddCondFS("old", "=", 1);
+			$DB->SetTable($this->db_prefix."specialities", "s");
+			$DB->AddTable($this->db_prefix."school", "sch");
+			$DB->AddCondFS("s.old", "=", 1);
+			$DB->AddCondFF("s.direction", "=", "sch.code");
+			$DB->AddFields(array("s.id", "s.name", "s.code", "s.direction"));
+			$DB->AddField("sch.name", "dir_name");
+			$DB->AddField("sch.code", "dir_code");
 			
 			$res_old = $DB->Select();
 			while ($row_old = $DB->FetchAssoc($res_old)) {
-				$this->output["old_specs"][$row_old["id"]] = $row_old;
+				$this->output["old_specs"][$row_old["direction"]]["specs"][$row_old["id"]] = $row_old;
+				$this->output["old_specs"][$row_old["direction"]]["title"] = $row_old["dir_name"];
+				$this->output["old_specs"][$row_old["direction"]]["code"] = $row_old["dir_code"];
 			}
 			
 			$DB->SetTable($this->db_prefix."qualifications");			
@@ -2674,7 +2690,7 @@ class Ensau
 			if($row = $DB->FetchAssoc($res)) {
 				$this->output["spec_info"] = $row;
 			};
-      $DB->SetTable($this->db_prefix."qualifications");
+		    $DB->SetTable($this->db_prefix."qualifications");
 			
 			$res_qual = $DB->Select();
 			while ($row_qual = $DB->FetchAssoc($res_qual)) {
@@ -2687,7 +2703,7 @@ class Ensau
 				$this->output["form_back"]["has_vacancies"] = empty($_POST["has_vacancies"]) ? 0 : 1;
 				$this->output["form_back"]["internal_tuition_sub"] = empty($_POST["internal_tuition_sub"]) ? 0 : 1;
 				$this->output["form_back"]["correspondence_tuition_sub"] = empty($_POST["correspondence_tuition_sub"]) ? 0 : 1;
-        $this->output["form_back"]["qualification"] = $_POST["qualification"];
+		        $this->output["form_back"]["qualification"] = $_POST["qualification"];
 				
 				if(!isset($_POST["type_sub"]) || $_POST["type_sub"] == "0" || empty($_POST["type_sub"])) {
 					$this->output["messages"]["bad"][] = "Уровень подготовки не выбран.";
@@ -2716,9 +2732,9 @@ class Ensau
 					} else {
 						$DB->AddValue("has_vacancies", 0);
 					}
-          if(!empty($_POST["qualification"])) {
-            $DB->AddValue("qual_id", $_POST["qualification"]);
-          }
+			        if(!empty($_POST["qualification"])) {
+			            $DB->AddValue("qual_id", $_POST["qualification"]);
+			        }
 					if($DB->Insert()) {
 						$this->output["messages"]["good"][] = "Уровень обучения специальности успешно добавлен.";
 						if($_POST["type_sub"] == "secondary" && !empty($_POST["data_training"])) {
@@ -2728,7 +2744,7 @@ class Ensau
 							$DB->Update();
 						}
 						$Engine->LogAction($this->module_id, "spec_type", $_POST["spec_id"], "add");
-						CF::Redirect($Engine->engine_uri);
+						CF::Redirect($Engine->engine_uri."edit_speciality/".$_POST["spec_id"]."/");
 					} else {
 						$this->output["messages"]["bad"][] = "Уровень обучения специальности не добавлен.";
 					}
@@ -2801,6 +2817,8 @@ class Ensau
 		elseif(isset($pars[0], $pars[1]) && !empty($pars[0]) && $pars[0] == "edit_speciality" && CF::IsNaturalNumeric($pars[1])) {
 			$this->output["sub_mode"] = "edit_speciality";
 			$DB->SetTable($this->db_prefix."school");
+		    $DB->AddOrder("name");
+		    $DB->AddOrder("code");
 			$res = $DB->Select(); 
 			$this->output["direction"] = array();
 			while ($row = $DB->FetchAssoc($res)) {
@@ -2815,16 +2833,16 @@ class Ensau
 				$this->output["faculty"][]=$row;
 			};
       
-      $file_types = array('ФГОС', 'Учебный план', 'График учебного процесса');
-      $this->output['file_types'] = $file_types; 
-      
-      $this->output["files"] = array();
-      $DB->SetTable("nsau_files");
-      $DB->AddCondFS("user_id", "=", $Auth->user_id);
-      $res = $DB->Select();
-      while($row = $DB->FetchAssoc($res)) {
-        $this->output['files'][$row['id']] = $row;
-      }
+		      $file_types = array('ФГОС', 'Учебный план', 'График учебного процесса');
+		      $this->output['file_types'] = $file_types; 
+		      
+		      $this->output["files"] = array();
+		      $DB->SetTable("nsau_files");
+		      $DB->AddCondFS("user_id", "=", $Auth->user_id);
+		      $res = $DB->Select();
+		      while($row = $DB->FetchAssoc($res)) {
+		        $this->output['files'][$row['id']] = $row;
+		      }
 			
 			$DB->SetTable($this->db_prefix."specialities", "s");
 			$DB->AddField("id");
@@ -2834,7 +2852,7 @@ class Ensau
 			$DB->AddField("s.direction");
 			$DB->AddField("s.description");
 			$DB->AddField("s.old");
-      $DB->AddField("s.old_id"); 
+		    $DB->AddField("s.old_id"); 
 			$DB->AddCondFS("id", "=", $pars[1]);
 			$res=$DB->Select();
 			$this->output["speciality"]=array();
@@ -2842,12 +2860,28 @@ class Ensau
 				$this->output["speciality"]=$row;
 			};
       
-      $DB->SetTable($this->db_prefix."specialities");
+		    /*$DB->SetTable($this->db_prefix."specialities");
 			$DB->AddCondFS("old", "=", 1);
 			
 			$res_old = $DB->Select();
 			while ($row_old = $DB->FetchAssoc($res_old)) {
 				$this->output["old_specs"][$row_old["id"]] = $row_old;
+			}
+			*/
+			
+			$DB->SetTable($this->db_prefix."specialities", "s");
+			$DB->AddTable($this->db_prefix."school", "sch");
+			$DB->AddCondFS("s.old", "=", 1);
+			$DB->AddCondFF("s.direction", "=", "sch.code");
+			$DB->AddFields(array("s.id", "s.name", "s.code", "s.direction"));
+			$DB->AddField("sch.name", "dir_name");
+			$DB->AddField("sch.code", "dir_code");
+				
+			$res_old = $DB->Select();
+			while ($row_old = $DB->FetchAssoc($res_old)) {
+				$this->output["old_specs"][$row_old["direction"]]["specs"][$row_old["id"]] = $row_old;
+				$this->output["old_specs"][$row_old["direction"]]["title"] = $row_old["dir_name"];
+				$this->output["old_specs"][$row_old["direction"]]["code"] = $row_old["dir_code"];
 			}
 			
 			$DB->SetTable($this->db_prefix."spec_type","st");
@@ -2929,11 +2963,11 @@ class Ensau
 				$DB->AddValue("s.direction", $_POST["direction"]);
 				$DB->AddValue("s.description", $_POST["description"]);
         
-        if(preg_match('/\d{2}\.\d{2}\.\d{2}/', $_POST['code'])) {
-          $DB->AddValue('old', 0);
-        }
-        
-        $DB->AddValue("old_id", (int)$_POST["old_spec"]);
+		        if(preg_match('/\d{2}\.\d{2}\.\d{2}/', $_POST['code'])) {
+		          $DB->AddValue('old', 0);
+		        }
+		        
+		        $DB->AddValue("old_id", (int)$_POST["old_spec"]);
         
 				if($DB->Update()) {
 					$Engine->LogAction($this->module_id, "specialities", $_POST["spec_id"], "update");
@@ -2946,7 +2980,7 @@ class Ensau
 						$DB->AddValue("st.type_code", $spec_type[1][$edit_type["type"]]);
 						$DB->AddValue("st.data_training", $edit_type["data_training"]);
 						$DB->AddValue("st.qualification", $edit_type["qualification"]);
-            $DB->AddValue("st.qual_id", $edit_type["qual_id"]);
+			            $DB->AddValue("st.qual_id", $edit_type["qual_id"]);
 						$DB->AddValue("st.description", $edit_type["description"]);
 						$DB->AddValue("st.year_open", $edit_type["year_open"]);
 						
@@ -2967,9 +3001,71 @@ class Ensau
 						};//echo $DB->UpdateQuery(); echo $edit_type["st_type_id"]; exit; 
 						if($DB->Update()) {
 							$Engine->LogAction($this->module_id, "spec_type", $edit_type["st_type_id"], "update");
+							if(!empty($edit_type["qual_id"])) {
+							$DB->SetTable($this->db_prefix."spec_exams");
+							$DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
+							$DB->AddCondFS("qual_id", "=", $edit_type["qual_id"]);
+							$DB->Delete();
+							$DB->SetTable($this->db_prefix."exams");
+							$res = $DB->Select();
+							while ($row = $DB->FetchAssoc($res)) {
+								if(isset($edit_type['exams'][$row["id"]]) && $edit_type['exams'][$row["id"]] == "on") {
+								$DB->SetTable($this->db_prefix."qualifications");
+									$DB->AddCondFS("id", "=", $edit_type["qual_id"]);
+									$res_qual = $DB->Select(1);
+									while ($row_qual = $DB->FetchAssoc($res_qual)) {
+										$qual_name = $row_qual["name"];
+									}
+									$DB->SetTable($this->db_prefix."spec_exams");
+									$DB->AddValue("spec_id", $_POST["spec_id"]);
+									$DB->AddValue("spec_type_id", $edit_type['st_type_id']);
+									$DB->AddValue("speciality_code", $_POST["code"]);
+									$DB->AddValue("exam_id", $row["id"]);
+									$DB->AddValue("qual_id", $edit_type["qual_id"]);
+									$DB->AddValue("type", $edit_type['type']);//echo $DB->InsertQuery();
+									$DB->AddValue("qualification", $qual_name);
+									
+									if($DB->Insert()) {
+										1;
+									}
+								}
+							}
+							}
 						} else {
 							$this->output["messages"]["bad"][] = "Ошибка при редактировании специальности.";
 						};
+						
+						/*$DB->SetTable($this->db_prefix."exams");
+						$res = $DB->Select();
+						while ($row = $DB->FetchAssoc($res)) {
+							foreach($edit_type["exams"] as $exam) {
+								if(isset($edit_type['exams'][$row["id"]]) && $edit_type['exams'][$row["id"]] == "on") {
+									$DB->SetTable($this->db_prefix."spec_exams");
+									$DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
+									$DB->AddCondFS("exam_id", "=", $row["id"]);
+									$DB->AddCondFS("qual_id", "=", $type);echo $DB->SelectQuery();
+									$res_se = $DB->Select();
+									if (!($row_se = $DB->FetchAssoc($res_se))) {
+										$DB->SetTable($this->db_prefix."spec_exams");
+										$DB->AddValue("spec_id", $_POST["spec_id"]);
+										$DB->AddValue("spec_type_id", $edit_type['st_type_id']);
+										$DB->AddValue("speciality_code", $_POST["code"]);
+										$DB->AddValue("exam_id", $row["id"]);
+										$DB->AddValue("qual_id", $type);
+										$DB->AddValue("type", $edit_type['type']);echo $DB->InsertQuery();
+										if($DB->Insert()) {
+											1;
+										} 
+									} 
+								} else {
+									$DB->SetTable($this->db_prefix."spec_exams");
+									$DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
+									$DB->AddCondFS("exam_id", "=", $row["id"]);
+									$DB->AddCondFS("qual_id", "=", $type);
+									//$DB->Delete();
+								}
+							}
+						}*/
 					}
 					$DB->SetTable($this->db_prefix."exams");
 					$res = $DB->Select();
@@ -2996,6 +3092,7 @@ class Ensau
 							$DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
 							$DB->AddCondFS("exam_id", "=", $row["id"]);
 							$DB->AddCondFS("type", "=", "secondary");
+							$DB->AddCondFS("qual_id", "=", 0);
 							$DB->Delete();
 						}
 						
@@ -3019,6 +3116,7 @@ class Ensau
 							$DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
 							$DB->AddCondFS("exam_id", "=", $row["id"]);
 							$DB->AddCondFS("type", "=", "bachelor");
+							$DB->AddCondFS("qual_id", "=", 0);
 							$DB->Delete();
 						}
 						if (isset($_POST['spec_type']["magistracy"]['exams'][$row["id"]]) && $_POST['spec_type']["magistracy"]['exams'][$row["id"]] == "on" && $_POST['spec_type']["magistracy"]['type'] != "magistracy") {
@@ -3041,6 +3139,7 @@ class Ensau
 							$DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
 							$DB->AddCondFS("exam_id", "=", $row["id"]);
 							$DB->AddCondFS("type", "=", "magistracy");
+							$DB->AddCondFS("qual_id", "=", 0);
 							$DB->Delete();
 						}
 						if (isset($_POST['spec_type']["higher"]['exams'][$row["id"]]) && $_POST['spec_type']["higher"]['exams'][$row["id"]] == "on" && $_POST['spec_type']["higher"]['type'] != "magistracy") {
@@ -3063,6 +3162,7 @@ class Ensau
 							$DB->AddCondFS("spec_id", "=", $_POST["spec_id"]);
 							$DB->AddCondFS("exam_id", "=", $row["id"]);
 							$DB->AddCondFS("type", "=", "higher");
+							$DB->AddCondFS("qual_id", "=", 0);
 							$DB->Delete();
 						}
 						$DB->FreeRes();
@@ -3208,7 +3308,7 @@ class Ensau
 				} 
 			} */
 		 
-			$res = $DB->Exec("SELECT st.id, st.code, st.name, st.id_faculty, st.direction, st.description, st.old, f.name as fname FROM ".$this->db_prefix."specialities as st left join ".$this->db_prefix."faculties as f on st.id_faculty = f.id order by st.code");
+			$res = $DB->Exec("SELECT st.id, st.code, st.name, st.id_faculty, st.direction, st.description, st.old, f.name as fname FROM ".$this->db_prefix."specialities as st left join ".$this->db_prefix."faculties as f on st.id_faculty = f.id ".(isset($_GET["old"]) ? " WHERE st.old=".(int)$_GET["old"] : "")." order by st.code");
 			$this->output["speciality_directory"] = array();
 			while ($row = $DB->FetchAssoc($res)) {
 				if ($Engine->OperationAllowed($this->module_id, "specialities.handle", (int)$row["code"], $Auth->usergroup_id))
@@ -3249,6 +3349,8 @@ class Ensau
 				$Engine->HTTP404();*/
 			
 			$DB->SetTable($this->db_prefix."school","s");
+		    $DB->AddOrder("s.name");
+		    $DB->AddOrder("s.code");
 			$res = $DB->Select(); 
 			$this->output["directory"] = array();
 			while ($row = $DB->FetchAssoc($res)) {
@@ -3276,6 +3378,7 @@ class Ensau
 		); 
     
     $spec_type_name = array('secondary' => 'СПО','bachelor' => 'Бакалавриат', 'magistracy' => 'Магистратура', 'higher' => 'ВПО');
+    $this->output["spec_type_name"] = $spec_type_name;
         
 		$parts = explode ("/", $module_uri);
 		if(isset($_GET['action']) && $_GET['action'] == 'add_subsection' && isset($_GET['id'])) {
@@ -3421,6 +3524,8 @@ class Ensau
         }
         
         $DB->SetTable($this->db_prefix."school","s");
+        $DB->AddOrder("s.name");
+        $DB->AddOrder("s.code");
         $res = $DB->Select(); 
         $this->output["directory"] = array();
         while ($row = $DB->FetchAssoc($res)) {
@@ -3492,22 +3597,23 @@ class Ensau
 				$DB->AddField("s.name");
 				$DB->AddField("s.direction");
 				$DB->AddField("s.description");
-        $DB->AddField("s.old");
-        $DB->AddField("s.old_id");
+		        $DB->AddField("s.old");
+		        $DB->AddField("s.old_id");
         
-        //$DB->AddField("s.data_training");
+		        //$DB->AddField("s.data_training");
 				$DB->AddCondFS("s.code", "=", $parts[1]);
-        $code = $parts[1]; 
+		        $code = $parts[1]; 
 
 				if(isset($parts[2]) && !empty($parts[2]) && CF::IsNaturalNumeric($parts[2])) {
 					$DB->AddCondFS("s.id", "=", $parts[2]); 
-          $spec_id = $parts[2];
+			        $spec_id = $parts[2];
 				}
 				$res=$DB->Select();
 				$this->output["speciality"]=array();
 				while ($row=$DB->FetchAssoc($res)) {
+					$row["id_edit"] = $row["id"]; 
 				    if($row['old'] || $row['old_id'] == 0)
-            $this->output["speciality"][]=$row;
+		            $this->output["speciality"][]=$row;
 					
 					/*if($parts[0] == "spo") {
 						if($row["data_training"] != null) {
@@ -3532,24 +3638,31 @@ class Ensau
 					}*/
           
           if($row["old"] == 0 && $row['old_id'] != 0) {
-            $spec_id = $row["old_id"];
-            $DB->SetTable($this->db_prefix."specialities", "s");
-            $DB->AddField("id");
-            $DB->AddField("id_faculty");
-            $DB->AddField("s.code");
-            $DB->AddField("s.name");
-            $DB->AddField("s.direction");
-            $DB->AddField("s.description");
-            $DB->AddCondFS("s.id", "=", $row["old_id"]);
-            //echo $DB->SelectQuery();
-            $res_old = $DB->Select();
-            while($row_old = $DB->FetchAssoc($res_old)) {
-              $code = $row_old["code"];
-              $row_old["code"] = $row["code"];
-              $row_old["name"] = $row["name"];
-              $this->output["speciality"][]=$row_old;
-              $special = $row_old; 
-            }
+          	if(trim(strip_tags($row["description"])) != "") { 
+          		$this->output["speciality"][]=$row;
+	          	$spec_id = $row["id"]; 
+          	}
+          	else {
+	            $spec_id = $row["old_id"];
+	            $DB->SetTable($this->db_prefix."specialities", "s");
+	            $DB->AddField("id");
+	            $DB->AddField("id_faculty");
+	            $DB->AddField("s.code");
+	            $DB->AddField("s.name");
+	            $DB->AddField("s.direction");
+	            $DB->AddField("s.description");
+	            $DB->AddCondFS("s.id", "=", $row["old_id"]);
+	            //echo $DB->SelectQuery();
+	            $res_old = $DB->Select();
+	            while($row_old = $DB->FetchAssoc($res_old)) {
+	              $code = $row_old["code"];
+	              $row_old["code"] = $row["code"];
+	              $row_old["name"] = $row["name"];
+	              $row_old["id_edit"] = $row["id"];
+	              $this->output["speciality"][]=$row_old;
+	              $special = $row_old; 
+	            }
+          	}
           }
           
 				}
@@ -3608,7 +3721,9 @@ class Ensau
 				    $this->output["speciality_edit"][$row['spec_id']][] = $row;
 				} 
 				//die(print_r($this->output["speciality_edit"]));
-				$DB->SetTable($this->db_prefix."school");
+				$DB->SetTable($this->db_prefix."school"); 
+		        $DB->AddOrder("s.code");
+		        $DB->AddOrder("s.name");
 				$res = $DB->Select(); 
 				$this->output["direction"] = array();
 				while ($row = $DB->FetchAssoc($res)) {
@@ -3784,33 +3899,38 @@ class Ensau
 					$DB->AddCondFS("s.id", "=", $parts[1]);
 				}
 				$res=$DB->Select();
-        $spec_id = $parts[1];
+		        $spec_id = $parts[1];
 				$this->output["speciality"]=array();
-        $special = null;
+		        $special = null;
 				while ($row=$DB->FetchAssoc($res)) {
 					//$this->output["speciality"][]=$row;
 
 					$special = $row;
-          $code = $row["code"];
+					$special["id_edit"] = $special["id"];
+		          $code = $row["code"];
           
-          if($row["old"] == 0) {
-            $spec_id = $row["old_id"];
-            $DB->SetTable($this->db_prefix."specialities", "s");
-            $DB->AddField("id");
-            $DB->AddField("id_faculty");
-            $DB->AddField("s.code");
-            $DB->AddField("s.name");
-            $DB->AddField("s.direction");
-            $DB->AddField("s.description");
-            $DB->AddCondFS("s.id", "=", $row["old_id"]);
-            $res_old = $DB->Select();
-            while($row_old = $DB->FetchAssoc($res_old)) {
-              $code = $row_old["code"];
-              $row_old["code"] = $row["code"];
-              $row_old["name"] = $row["name"];
-              //$this->output["speciality"][]=$row_old;
-              $special = $row_old; 
-            }
+          if($row["old"] == 0 && $row["old_id"]) {
+          	if(trim(strip_tags($row["description"])) != "") $special=$row;
+          	else {
+	            $spec_id = $row["old_id"];
+	            $DB->SetTable($this->db_prefix."specialities", "s");
+	            $DB->AddField("id");
+	            $DB->AddField("id_faculty");
+	            $DB->AddField("s.code");
+	            $DB->AddField("s.name");
+	            $DB->AddField("s.direction");
+	            $DB->AddField("s.description");
+	            $DB->AddCondFS("s.id", "=", $row["old_id"]);
+	            $res_old = $DB->Select();
+	            while($row_old = $DB->FetchAssoc($res_old)) {
+	              $code = $row_old["code"];
+	              $row_old["code"] = $row["code"];
+	              $row_old["name"] = $row["name"];
+	              //$this->output["speciality"][]=$row_old;
+	              $special = $row_old;
+	              $special["id_edit"] = $row["id"]; 
+	            }
+          	}
           }
 				}
         if($special) $this->output["speciality"][] = $special; 
@@ -3868,6 +3988,8 @@ class Ensau
 				}	 
 				
 				$DB->SetTable($this->db_prefix."school");
+		        $DB->AddOrder("s.name"); 
+		        $DB->AddOrder("s.code");
 				$res = $DB->Select(); 
 				$this->output["direction"] = array();
 				while ($row = $DB->FetchAssoc($res)) {
@@ -3923,11 +4045,95 @@ class Ensau
         $this->output["privileges"]["specialities.handle"] = false;
         $this->output["privileges"]["specialities.handle"] = $Engine->OperationAllowed(5, "specialities.handle", -1, $Auth->usergroup_id);
     }
+     
+    function library_standard($type) {
+        global $DB, $Engine, $Auth;
+        $spec_type = array(
+          '0' => array('51'=>'secondary','68'=>'magistracy','62'=>'bachelor','65'=>'higher'),
+          '1' => array('secondary'=>'51','magistracy'=>'68','bachelor'=>'62','higher'=>'65')
+        ); 
+        
+        $this->output["type"] = $type;
+        
+        $DB->SetTable($this->db_prefix."spec_type","st");
+        $DB->AddTable($this->db_prefix."specialities", "s");
+        $DB->AddTable($this->db_prefix."school", "sch");
+        $DB->AddTable($this->db_prefix."spec_files", "sf");
+        
+        $DB->AddCondFS("st.type", "=", $type);
+        $DB->AddCondFS("sf.file_type", "=", "ФГОС");
+        $DB->AddCondFF("s.code","=","st.code");
+        $DB->AddCondFF("s.id","=","st.spec_id");
+        $DB->AddCondFF("st.qual_id","=","sf.qual_id");
+        $DB->AddCondFF("s.id","=","sf.spec_id");
+        $DB->AddCondFF("s.direction","=","sch.code"); 
 
+            $DB->AddField("st.code");
+            $DB->AddField("s.id");
+            $DB->AddField("s.name");
+            $DB->AddField("s.direction");
+            $DB->AddField("st.year_open");
+            $DB->AddField("st.type");
+            $DB->AddField("s.old");
+            $DB->AddField("st.qual_id");
+			$DB->AddField("st.type");
+            $DB->AddField("st.internal_tuition");
+            $DB->AddField("st.has_vacancies");
+            $DB->AddField("st.correspondence_tuition");
+            $DB->AddField("sch.name", "name_dir");
+            $DB->AddField("sch.code", "code_dir");
+            $DB->AddOrder("s.direction");
+            $DB->AddCondFS("st.type", "=", $type);
+            $DB->AddCondFF("s.code","=","st.code");
+            $DB->AddCondFF("s.id","=","st.spec_id");
+            $DB->AddCondFF("s.direction","=","sch.code");
+            $DB->AddField("sf.file_id");
+            
+            //echo $DB->SelectQuery();
+            $res = $DB->Select(); 
+            
+            while ($row = $DB->FetchAssoc($res)) {
+                $this->output["specialities"][$row['direction']]['direction'] = $row['name_dir'];
+				if(!isset($this->output["specialities"][$row['direction']]['has_vacancies'])) {
+					$this->output["specialities"][$row['direction']]['has_vacancies'] = 0;					
+				}
+				if($row['has_vacancies'] == 1) {
+					$this->output["specialities"][$row['direction']]['has_vacancies'] = $row['has_vacancies'];
+				}
+        
+        if($row["old"] == 0) {
+          $DB->SetTable($this->db_prefix."qualifications");
+          $DB->AddCondFS("id", "=", $row["qual_id"]); 
+          $res_qual = $DB->Select(1);
+          while($row_qual = $DB->FetchAssoc($res_qual)) {
+            $row["qualification"] = $row_qual["name"];
+          }
+        }
+        
+                /*if(!isset( $this->output["specialities"][$row['direction']]['spec'][$row['id']] )) */$this->output["specialities"][$row['direction']]['spec'][/*$row['id']*/] = $row;
+                
+                /*if($row["old"] == 0) {
+          $DB->SetTable($this->db_prefix."qualifications");
+          $DB->AddCondFS("id", "=", $row["qual_id"]); 
+          $res_qual = $DB->Select(1);
+          while($row_qual = $DB->FetchAssoc($res_qual)) {
+            $this->output["specialities"][$row['direction']]['spec'][$row['id']]["qualification"][] = $row_qual["name"];
+          }
+        } */
+            }
+			
+			
+            $this->output["privileges"]["specialities.handle"] = false;
+            $this->output["privileges"]["specialities.handle"] = $Engine->OperationAllowed(5, "specialities.handle", -1, $Auth->usergroup_id);
+    }
     
     function specialities($type)
     {
         global $DB, $Engine, $Auth;
+        $spec_type = array(
+				'0' => array('51'=>'secondary','68'=>'magistracy','62'=>'bachelor','65'=>'higher'),
+				'1' => array('secondary'=>'51','magistracy'=>'68','bachelor'=>'62','higher'=>'65')
+			);
             $DB->SetTable($this->db_prefix."spec_type","st");
             $DB->AddTable($this->db_prefix."specialities", "s");
             $DB->AddTable($this->db_prefix."school", "sch");
@@ -3936,17 +4142,27 @@ class Ensau
             $DB->AddField("s.name");
             $DB->AddField("s.direction");
             $DB->AddField("st.year_open");
+            $DB->AddField("st.type");
+            $DB->AddField("s.old");
+            $DB->AddField("st.qual_id");
 			$DB->AddField("st.type");
             $DB->AddField("st.internal_tuition");
             $DB->AddField("st.has_vacancies");
             $DB->AddField("st.correspondence_tuition");
             $DB->AddField("sch.name", "name_dir");
+            $DB->AddField("sch.code", "code_dir");
             $DB->AddOrder("s.direction");
             $DB->AddCondFS("st.type", "=", $type);
             $DB->AddCondFF("s.code","=","st.code");
             $DB->AddCondFF("s.id","=","st.spec_id");
             $DB->AddCondFF("s.direction","=","sch.code");
 
+
+
+            if(isset($_GET["old"])) {
+            	$DB->AddCondFS("s.old", "=", (int)$_GET["old"]);
+            }
+            
         if(isset($_GET["sort"]) && $_GET["sort"]=="name") 
         {
             $DB->AddOrder("s.name");
@@ -4005,6 +4221,7 @@ class Ensau
                 $this->output["specialities"][] = $row;
             }*/
         }
+        
             while ($row = $DB->FetchAssoc($res)) {
                 $this->output["specialities"][$row['direction']]['direction'] = $row['name_dir'];
 				if(!isset($this->output["specialities"][$row['direction']]['has_vacancies'])) {
@@ -4013,7 +4230,26 @@ class Ensau
 				if($row['has_vacancies'] == 1) {
 					$this->output["specialities"][$row['direction']]['has_vacancies'] = $row['has_vacancies'];
 				}
-                $this->output["specialities"][$row['direction']]['spec'][] = $row;
+        
+        if($row["old"] == 0) {
+          $DB->SetTable($this->db_prefix."qualifications");
+          $DB->AddCondFS("id", "=", $row["qual_id"]); 
+          $res_qual = $DB->Select(1);
+          while($row_qual = $DB->FetchAssoc($res_qual)) {
+            $row["qualification"] = $row_qual["name"];
+          }
+        }
+        
+                /*if(!isset( $this->output["specialities"][$row['direction']]['spec'][$row['id']] )) */$this->output["specialities"][$row['direction']]['spec'][/*$row['id']*/] = $row;
+                
+                /*if($row["old"] == 0) {
+          $DB->SetTable($this->db_prefix."qualifications");
+          $DB->AddCondFS("id", "=", $row["qual_id"]); 
+          $res_qual = $DB->Select(1);
+          while($row_qual = $DB->FetchAssoc($res_qual)) {
+            $this->output["specialities"][$row['direction']]['spec'][$row['id']]["qualification"][] = $row_qual["name"];
+          }
+        } */
             }
 			
 			
@@ -4272,6 +4508,7 @@ class Ensau
 				$DB->AddField("d.name","name");
 				$DB->AddField("d.url","url");
 				$DB->AddField("d.id","id");
+        $DB->AddCondFS("d.is_active", "=", 1);
 				$res_dep = $DB->Select();
 				while($row_dep = $DB->FetchObject($res_dep))
 					if(isset($row_dep->name)) {
@@ -4400,6 +4637,7 @@ class Ensau
                 $DB->AddField("d.name", "department_name");
                 $DB->AddField("t.department_id", "department_id");
                 $DB->AddField("t.post", "post");
+                $DB->AddCondFS("d.is_active", "=", 1);
                 $res = $DB->Select();
 				while($row = $DB->FetchAssoc($res)) {
 					$man["department"][$row["department_id"]] = $row["department_name"];
@@ -4425,6 +4663,7 @@ class Ensau
                     $DB->AddCondFF("t.department_id", "=", "d.id");
                     $DB->AddField("d.name", "department_name");
                     $DB->AddField("t.department_id", "department_id");
+                    $DB->AddCondFS("d.is_active", "=", 1);
                     $res = $DB->Select();
 					while($row = $DB->FetchAssoc($res)) {
 						$this->output["current_department"][$row["department_id"]] = $row["department_name"]; 
@@ -4437,7 +4676,8 @@ class Ensau
 			while($row = $DB->FetchAssoc($res)) {
 				$DB->SetTable($this->db_prefix."departments");
 				$DB->AddCondFS("faculty_id", "=", $row["id"]);
-				$DB->AddOrder("name");
+        $DB->AddCondFS("is_active", "=", 1);
+				$DB->AddOrder("name"); 
 				$res2 =  $DB->Select();
 				while($row2 = $DB->FetchAssoc($res2)) {
 					if ($Engine->OperationAllowed($this->module_id, "teachers.faculty.handle", $row["id"], $Auth->usergroup_id) || $Engine->OperationAllowed($this->module_id, "teachers.own.handle", $row2["id"], $Auth->usergroup_id)) {
@@ -4854,6 +5094,7 @@ class Ensau
         while($row = $DB->FetchAssoc($res)) {
 			$DB->SetTable($this->db_prefix."departments");
             $DB->AddCondFS("faculty_id", "=", $row["id"]);
+            $DB->AddCondFS("is_active", "=", 1);
 			$DB->AddOrder("name");
             $res2 =  $DB->Select();
             while($row2 = $DB->FetchAssoc($res2)) {
@@ -4875,6 +5116,7 @@ class Ensau
             $DB->AddField("t.post", "post");
             $DB->AddField("t.is_curator", "is_curator");
             $DB->AddField("t.curator_text", "curator_text");
+            $DB->AddCondFS("d.is_active", "=", 1);
             $res = $DB->Select();
 			while($row = $DB->FetchAssoc($res)) {
 				$man["department"][$row["department_id"]] = $row["department_name"];
@@ -4883,6 +5125,18 @@ class Ensau
                 $man["curator_text"] = $row["curator_text"];
                 $teacher_ids[] = $row["teacher_id"];
 			}
+			
+			//if($_POST["status"] == 9) {
+			$DB->SetTable("auth_users");
+			if($_POST["status"] == 9) {
+				$DB->AddValue("is_active", "0");				
+			}
+      else {
+				$DB->AddValue("is_active", "1");			
+			}
+			
+      $DB->AddCondFS("id", "=", $man["user_id"]);
+			$DB->Update();
 			
 			if ($man["is_curator"]) {
 							
@@ -7838,6 +8092,7 @@ class Ensau
 					$DB->AddField("t.post","post");
 					$DB->AddField("p.male","male");
 					$DB->AddField("p.id","id");
+          $DB->AddField("p.status_id","status");
 					//$DB->AddField("t.rate","rate");
 					//$DB->AddOrder("t.department_id");
 					$DB->AddCondFF("p.id","=", "t.people_id");
@@ -8001,12 +8256,19 @@ class Ensau
 		$res_subj = $DB->Select();
 		while($row_subj = $DB->FetchAssoc($res_subj)) {
 			$this->output["subjects_file"][$row_subj['id']]['name'] = $row_subj['name'];
-			$DB->SetTable($this->db_prefix."files_subj");
-			$DB->AddCondFS("subject_id", "=", $row_subj['id']);
-			$DB->AddCondFS("approved", "=", 1);
+			$DB->SetTable($this->db_prefix."files_subj", "fs");
+      $DB->AddTable($this->db_prefix."file_view", "fv");
+			$DB->AddCondFS("fs.subject_id", "=", $row_subj['id']);
+			$DB->AddCondFS("fs.approved", "=", 1); 
+      $DB->AddCondFF("fs.view_id", "=", "fv.id");
 			if(isset($parts[2]) && !empty($parts[2])) 
-				$DB->AddCondFS("education", "=", $parts[2]);
-			//echo $DB->SelectQuery();
+				$DB->AddCondFS("fs.education", "=", $parts[2]);
+			
+      //$DB->AddOrder("fs.view_id");
+      $DB->AddOrder("fv.pos");
+      //$DB->AddOrder("fs.view_id");
+      //echo $DB->SelectQuery(); 
+      
 			$res_file_subj = $DB->Select();
 			while($row_file_subj = $DB->FetchAssoc($res_file_subj)) {
 				$DB->SetTable($this->db_prefix."files");
