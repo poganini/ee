@@ -1,8 +1,8 @@
 <?php
 
 class EFiles
-// version: 2.12.12
-// date: 2013-12-19
+// version: 2.12.20
+// date: 2014-04-13
 {
 	var $output;
 	var $node_id;
@@ -57,7 +57,7 @@ class EFiles
 		ini_set("session.upload_progress.name", "UPLOAD_IDENTIFIER");//var_dump($_POST[ini_get("session.upload_progress.name")]);//print_r($_SESSION);//echo ini_get("session.upload_progress.name");
 			
 		//echo $_REQUEST['params'];
-		if (ALLOW_AUTH || $this->mode == "els")
+		if (ALLOW_AUTH || $this->mode == "els" || $this->mode == "els_spec_list")
 		{
 			switch ($this->mode)
 			{
@@ -122,10 +122,10 @@ class EFiles
 										"filename" => $ext,
 									));
 									$DB->AddCondFS("id", "=", $_POST["editfile"]);
-									$DB->Update();
-									
-									$new_id = $_POST["editfile"];
-									$Engine->LogAction($this->module_id, "file", $new_id, "update");
+									if($DB->Update()){
+										$new_id = $_POST["editfile"];
+										$Engine->LogAction($this->module_id, "file", $new_id, "update");
+									}									
 								}							
 								if (isset($_POST["allow_download"]) && $_POST["allow_download"]) {
 									//$Engine->AddPrivilege($this->module_id, "files.download", $new_id, -1, 1, "create;право на скачивание всем группам");
@@ -213,6 +213,10 @@ class EFiles
 										if($DB->Update()) {
 											$Engine->LogAction($this->module_id, "file", (int)$_POST["editfile"]/*.":".$row["spec_id"]*/, "reset_attach");
 										}
+										
+										if($transfer_allowed && isset($_POST["sel_teacher_".$_POST["editfile"]]) && $_POST["sel_teacher_".$_POST["editfile"]] != 0) {
+											$Engine->LogAction($this->module_id, "file", (int)$_POST["editfile"], "transfer;".$_POST["sel_teacher_".$_POST["editfile"]]);
+										}											
 									};
 								}
 														
@@ -335,7 +339,7 @@ class EFiles
 									$DB->AddValue("folder_id", NULL);
 								}							
 							
-								//echo $DB->UpdateQuery();
+								//echo $DB->UpdateQuery();exit;
 								if($DB->Update()) {
 									if (isset($_POST["allow_download_edit_".$_POST["editfile"]]) && $_POST["allow_download_edit_".$_POST["editfile"]]) {
 										//$Engine->AddPrivilege($this->module_id, "files.download", $new_id, -1, 1, "create;право на скачивание всем группам");
@@ -343,6 +347,10 @@ class EFiles
 									} else if (!isset($_POST["allow_download_edit_".$_POST["editfile"]]) && isset($_POST["editfile"])) {
 										$Engine->DeletePrivilege($this->module_id, "files.download", $_POST["editfile"], 0, 1);
 									}
+									
+									if($transfer_allowed && isset($_POST["sel_teacher_".$_POST["editfile"]]) && $_POST["sel_teacher_".$_POST["editfile"]] != 0) {
+											$Engine->LogAction($this->module_id, "file", (int)$_POST["editfile"], "transfer;".$_POST["sel_teacher_".$_POST["editfile"]]);
+										}
 									
 									$this->files_list($_POST["editfile"]);
 									
@@ -596,7 +604,9 @@ class EFiles
 				case "els": {
 
 					global $Engine, $DB, $Auth;
+					$spec_type_name = array('secondary' => 'СПО','bachelor' => 'Бакалавриат', 'magistracy' => 'Магистратура', 'higher' => 'ВПО');
 					
+					$this->output["spec_type_name"] = $spec_type_name;
 					
 					$this->output["scripts_mode"] = 'normal';
 					$filesShowLimit = 20;
@@ -612,6 +622,9 @@ class EFiles
 						$DB->AddTable("nsau_files_subj", "s");
 						$DB->AddTable("nsau_file_view", "v");
 						$DB->AddTable("nsau_subjects", "su");
+						if(isset($data["file_type"]) && $data["file_type"]) {
+							$DB->AddTable("nsau_spec_type", "st");
+						}
 						$DB->AddExp("COUNT(distinct f.id)");
 						
 						$DB->AddCondFF("f.id", "=", "s.file_id");
@@ -628,6 +641,10 @@ class EFiles
 							$DB->AddCondFS("f.year", "=", $data['file_year']);
 						if (isset($data['file_umkd']) && $data['file_umkd']) 
 							$DB->AddCondFS("s.view_id", "=", $data['file_umkd']);
+						if(isset($data["file_type"]) && $data["file_type"]) {
+							$DB->AddCondFF("st.id", "=", "s.spec_type_id");
+							$DB->AddCondFS("st.type", "=", $data["file_type"]);
+						}
 						if (isset($data['file_author']) && $data['file_author']) 
 							$DB->AddCondFS("f.author", " LIKE ", '%'.iconv('utf-8', 'windows-1251', mysql_real_escape_string($data['file_author'])).'%');
 						if (isset($data['file_title']) && $data['file_title']) { 
@@ -642,7 +659,7 @@ class EFiles
 								$DB->AddOrder("f.descr", (isset($data['sort_dir']) && $data['sort_dir'] ? ($data['sort_dir'] == "desc" ? false : true ) : false));
 								$DB->AddOrder("f.name", (isset($data['sort_dir']) && $data['sort_dir'] ? ($data['sort_dir'] == "desc" ? false : true ) : false));
 							}
-						}
+						}//echo $DB->SelectQuery();
 						
 						$res1 = $DB->Select(1, null , true, false, true);
 						list($count) = $DB->FetchRow($res1);
@@ -711,6 +728,7 @@ class EFiles
 															(isset($data['file_year']) ? "file_year:".$data['file_year']."," : "").
 															(isset($data['file_spec']) ? "file_spec:".$data['file_spec']."," : "").
 															(isset($data['file_umkd']) ? "file_umkd:".$data['file_umkd']."," : "").
+															(isset($data['file_type']) ? "file_type:".$data['file_type']."," : "").
 															"page:[PAGE_NUM]";
 
 						$Pager = new Pager($count, $filesShowLimit, $pagesShowLimit, null, null, array('page'=> $page), $callback); 
@@ -750,6 +768,169 @@ class EFiles
 						$this->output["allow_download"] = ($Auth->logged_in && $Auth->user_id) ? 1 : 0 ;
 					}
 
+				}
+				break;
+				
+				case "els_spec_list": {
+					$this->output["mode"] = 'els_spec_list';
+					$data = $_POST['data'];
+					$DB->SetTable("nsau_specialities", "spec");
+					$DB->AddField("spec.id", "id");
+					$DB->AddField("spec.code", "code");
+					$DB->AddField("spec.name", "name");
+			        $DB->AddField('spec.old');
+					$DB->AddOrder("spec.name");
+					if(isset($data["file_type"]) && $data["file_type"]) {
+						$DB->AddTable("nsau_spec_type", "st");
+						$DB->AddCondFF("st.spec_id", "=", "spec.id");
+						$DB->AddCondFS("st.type", "=", $data["file_type"]);
+					}
+					$res= $DB->Select();
+					while ($row = $DB->FetchAssoc($res)) {
+						$row["name"] = !AT_HOME ? $row['name'] : CF::Win2Utf($row["name"]); 
+						$specs[] = $row;
+					}
+					
+					$this->output["spec"] = $specs;
+					$this->output["file_spec"] = $data["file_spec"];
+				}
+				break; 
+				
+				case "stats": {
+					$DB->SetTable("nsau_files_subj");
+					$DB->AddCondFS("approved", "=", 1);
+					
+					$this->output["scripts_mode"] = 'stats';
+					
+					$DB->AddField("file_id"); 
+					$sql = $DB->SelectQuery(); 
+					//echo $sql."<br/>";
+					
+					$DB->AddExp("count(DISTINCT file_id) ", "num");
+					
+					//$DB->AddGrouping("file_id");
+					
+					$this->output["stat"] = array();
+					
+					$res = $DB->Select(); 
+					while ($row = $DB->FetchArray($res)) {
+						$this->output["documents"] = $row["num"];
+					}
+					
+					$DB->SetTable("nsau_files", "f");
+					$DB->AddTable("nsau_files_subj", "s");
+					$DB->AddTable("nsau_file_view", "v");
+					$DB->AddTable("nsau_subjects", "su");
+					
+					
+					$DB->AddCondFF("f.id", "=", "s.file_id");
+					$DB->AddCondFF("v.id", "=", "s.view_id");
+					$DB->AddCondFF("su.id", "=", "s.subject_id");
+					$DB->AddCondFS("s.approved", "=", 1);
+					
+					$DB->AddField("f.id");
+          //$DB->AddField("s.id");
+					
+					$sql = $DB->SelectQuery();
+					
+					$DB->AddExp("COUNT(distinct f.id)", "num");
+					
+					$res = $DB->Select();
+					while ($row = $DB->FetchArray($res)) {
+						$this->output["documents"] = $row["num"];
+					}
+					
+					$DB->SetTable("auth_users");
+					$DB->AddExp("count(*)", "num");
+					
+					$res = $DB->Select();
+					while ($row = $DB->FetchArray($res)) {
+						$this->output["users"] = $row["num"];
+					}
+					
+					if(isset($_POST["data"]["ajax"])) {						
+						$DB->Exec("CREATE TEMPORARY TABLE IF NOT EXISTS entry_temp (entry_id INT(11) NOT NULL PRIMARY KEY)");
+						
+						$DB->SetTable("engine_actions_log", "a"); 
+            $DB->AddTable("nsau_files_subj", "s"); 
+            $DB->AddCondFF("a.entry_id", "=", "s.id");
+						$DB->AddAltFS("a.action", "=", "approve");
+						$DB->AddAltFS("a.action", "=", "update");
+						//$DB->AddAltFS("action", "=", "attach");
+						$DB->AppendAlts();
+						$DB->AddCondFS("a.entry_type", "=", "file_approved");
+						$DB->AddCondFS("a.module_id", "=", $this->module_id);
+						$start_time = $DB->SmartTime(date("Y")-1, 01, 01, 00, 00, 00);
+						$end_time = $DB->SmartTime(date("Y")-1, 12, 31, 23, 59, 59);
+						$DB->AddCondFS("a.time", ">=", $start_time[0]);
+						$DB->AddCondFS("a.time", "<=", $end_time[0]);
+						
+						//$DB->AddCondFX("entry_id", "IN", "($sql)", false);
+            $DB->AddCondFX("s.file_id", "IN", "($sql)", false);
+							
+						//$DB->AddCondFX("entry_id", "IN", "(SELECT `file_id` FROM `nsau_files_subj` WHERE `approved` = '1')", false);
+							
+						//$DB->AddExp("count(*)", "num");
+						$DB->AddField("a.entry_id");//echo $DB->SelectQuery(); 
+						$DB->Exec("DELETE FROM entry_temp");
+						$sql2 = "INSERT IGNORE INTO entry_temp ".$DB->SelectQuery();//echo $sql2;
+						$DB->Exec($sql2);
+						
+						$DB->ResetFields();
+						$DB->Init();
+						
+						$DB->SetTable("engine_actions_log", "a");
+            $DB->AddTable("nsau_files_subj", "s"); 
+            $DB->AddCondFF("a.entry_id", "=", "s.id");
+						$DB->AddAltFS("a.action", "=", "approve");
+						$DB->AddAltFS("a.action", "=", "update");
+						//$DB->AddAltFS("action", "=", "attach");
+						$DB->AppendAlts();
+						$DB->AddCondFS("a.entry_type", "=", "file_approved");
+						$DB->AddCondFS("a.module_id", "=", $this->module_id);
+						$start_time = $DB->SmartTime(date("Y")-1, 01, 01, 00, 00, 00);
+						$end_time = $DB->SmartTime(date("Y")-1, 12, 31, 23, 59, 59);
+						$DB->AddCondFS("a.time", ">=", $start_time[0]);
+						$DB->AddCondFS("a.time", "<=", $end_time[0]);
+						
+						$DB->AddExp("count(DISTINCT s.file_id) ", "num");
+						//$DB->AddCondFX("entry_id", "IN", "($sql)", false);
+						$DB->AddCondFX("s.file_id", "IN", "(SELECT entry_id FROM entry_temp)", false);
+						//echo $DB->SelectQuery();
+						//exit;
+						
+						$res = $DB->Select();
+						while ($row = $DB->FetchArray($res)) {
+							$this->output["json"]["approved"] = $row["num"];
+						}
+						
+						$DB->SetTable("engine_actions_log", "a");
+            //$DB->AddTable("nsau_files_subj", "s");
+            //$DB->AddCondFF("a.entry_id", "=", "s.id");
+						$DB->AddCondFS("a.action", "=", "download");
+						$DB->AddCondFS("a.entry_type", "=", "file");
+						$DB->AddCondFS("a.module_id", "=", $this->module_id);
+						$start_time = $DB->SmartTime(date("Y")-1, 01, 01, 00, 00, 00);
+						$end_time = $DB->SmartTime(date("Y")-1, 12, 31, 23, 59, 59);
+						$DB->AddCondFS("a.time", ">=", $start_time[0]);
+						$DB->AddCondFS("a.time", "<=", $end_time[0]);
+						
+						//$DB->AddCondFX("entry_id", "IN", "(SELECT `file_id` FROM `nsau_files_subj` WHERE `approved` = '1')", false);
+						//$DB->AddCondFX("entry_id", "IN", "($sql)", false);
+						$DB->AddCondFX("a.entry_id", "IN", "(SELECT entry_id FROM entry_temp)", false);
+            //$DB->AddCondFX("s.file_id", "IN", "(SELECT entry_id FROM entry_temp)", false);
+						
+						$DB->AddExp("count(*)", "num");
+						//echo $DB->SelectQuery();
+						//exit;
+						
+						$res = $DB->Select();
+						while ($row = $DB->FetchArray($res)) {
+							$this->output["json"]["downloads"] = $row["num"];
+						}
+						
+						$DB->Exec("DROP TABLE IF EXISTS entry_temp");
+					}
 				}
 				break;
 			
@@ -1036,7 +1217,11 @@ class EFiles
 							$DB->AddValue("approved", NULL);//echo $DB->UpdateQuery();exit; 
 							if($DB->Update()) {
 								$Engine->LogAction($this->module_id, "file", (int)$_POST["editfile"]/*.":".$row["spec_id"]*/, "reset_attach");
-							}							
+							}
+							if($transfer_allowed && isset($_POST["sel_teacher_".$_POST["editfile"]]) && $_POST["sel_teacher_".$_POST["editfile"]] != 0) {
+								$Engine->LogAction($this->module_id, "file", (int)$_POST["editfile"], "transfer;".$_POST["sel_teacher_".$_POST["editfile"]]);	
+							} 
+																	
 						};
 						
 						if(!is_null($redirect)) {
@@ -1240,7 +1425,7 @@ class EFiles
 					$res = $DB->Select();
 					
 					$allowed_ips = explode(';', $ini_settings['allowed_ips']);
-					if  (substr($_SERVER["REMOTE_ADDR"], 0, 7) == "192.168" || in_array($_SERVER["REMOTE_ADDR"], $allowed_ips) ||
+					if  (substr($_SERVER["REMOTE_ADDR"], 0, 7) == "192.168" || in_array($_SERVER["REMOTE_ADDR"], $allowed_ips) || 
 						 $Engine->OperationAllowed($this->module_id, "files.download", $uri_array[0], $Auth->usergroup_id) ) 
 						$this->output["allow_download"] = 1;
 					else
@@ -1460,6 +1645,9 @@ class EFiles
 							}
 							if($DB->Update()) {
 								$Engine->LogAction($this->module_id, "file_approved", $_POST['file_attach_id'], "update");
+								if($_POST["file_access"] == 1)
+									$Engine->LogAction($this->module_id, "file_approved", $_POST['file_attach_id'], "approve");
+								elseif($_POST["file_access"] == -1) $Engine->LogAction($this->module_id, "file_approved", $_POST['file_attach_id'], "decline");
 								CF::Redirect($rederect);
 							} else {
 								$this->output["messages"]["bad"][] = "Ошибка обновления записи.";
@@ -1505,12 +1693,19 @@ class EFiles
 					$DB->AddField("spec.id", "spec_id");
 					$DB->AddField("spec.code", "code");
 					$DB->AddField("spec.name", "spname");
+			        $DB->AddField('spec.old');
 					$DB->AddOrder("spec.name");
+					if(isset($_REQUEST["file_type"]) && $_REQUEST["file_type"]) {
+						$DB->AddTable("nsau_spec_type", "st");
+						$DB->AddCondFF("st.spec_id", "=", "spec.id");
+						$DB->AddCondFS("st.type", "=", $_REQUEST["file_type"]);
+					}
 					//echo $DB->SelectQuery();
 					$res = $DB->Select();
 					while($row = $DB->FetchAssoc($res)) {
 						$this->output["spec_list"][$row['spec_id']]['name'] = $row['spname'];
-						$this->output["spec_list"][$row['spec_id']]['code'] = $row['code'];	
+						$this->output["spec_list"][$row['spec_id']]['code'] = $row['code'];
+			            $this->output["spec_list"][$row['spec_id']]['old'] = $row['old'];	
 						$DB->SetTable("nsau_spec_type");
 						$DB->AddCondFS("spec_id","=", $row['spec_id']);
 						$DB->AddCondFS("code","=", $row['code']);
@@ -1519,7 +1714,17 @@ class EFiles
 						while($row1 = $DB->FetchAssoc($res1)) {
 							$this->output["spec_list"][$row['spec_id']]['type'][$row1['id']]['name'] = $spec_type_name[$row1['type']];
 							$this->output["spec_list"][$row['spec_id']]['type'][$row1['id']]['code'] = $spec_type_code[$row1['type']];
+            
+              if($row['old'] == 0) {
+                $DB->SetTable("nsau_qualifications");
+                $DB->AddCondFS("id", "=", $row1['qual_id']);
+                $res2 = $DB->Select(1);
+                while($row2 = $DB->FetchAssoc($row2)) {
+                  $this->output["spec_list"][$row['spec_id']]['type'][$row1['id']]['name'] = $row2["name"];
+                } 
+              }
 						}
+            
 						$DB->SetTable("nsau_profiles");
 						$DB->AddCondFS("spec_id","=", $row['spec_id']);
 						$res2 = $DB->Select();
@@ -1579,7 +1784,7 @@ class EFiles
 						}
 					}
 										
-					if(!empty($_REQUEST['file_name']) || !empty($_REQUEST['file_spec']) || !empty($_REQUEST['file_view']) || !empty($_REQUEST['file_author']) || !empty($_REQUEST['file_subject']) || !empty($_REQUEST['file_year']) || !empty($_REQUEST["file_user"]) || !empty($_REQUEST["file_status"])) {
+					if(!empty($_REQUEST['file_name']) || !empty($_REQUEST['file_spec']) || !empty($_REQUEST['file_view']) || !empty($_REQUEST['file_author']) || !empty($_REQUEST['file_subject']) || !empty($_REQUEST['file_year']) || !empty($_REQUEST["file_user"]) || !empty($_REQUEST["file_status"]) || !empty($_REQUEST["file_type"])) {
 						$this->moderation_files_list();
 						//$this->output["show_unmoderated_files"] = true; 
 					} else { 
@@ -1737,6 +1942,7 @@ class EFiles
 				$res1 = $DB->Select();
 				if($row1 = $DB->FetchAssoc($res1)) {
 					$spec_type = $row1['type_code'];
+          $qual_id = $row1['qual_id'];
 				}
 				
 				
@@ -1753,6 +1959,9 @@ class EFiles
 				if(!is_null($spec_type)) {
 					$DB->AddValue("spec_type", $spec_type);
 				}
+        if(!empty($qual_id)) {
+          $DB->AddValue("qual_id", $qual_id);
+        }
 				$DB->AddValue("spec_type_id", $_POST["sel_spec_type"][$spec_id]);
 				$DB->AddValue("education", $_POST["sel_education"][$spec_id]);
 				if(/*$_POST["sel_education"][$spec_id] == "Заочная"*/!empty($_POST["sel_semester"][$spec_id])) {
@@ -1937,6 +2146,7 @@ class EFiles
 			$DB->AddField("comment");
 			$DB->AddCondFS("file_id", "=", $row["id"]);
 			$DB->AddCondFO("subject_id", " is not null ");
+      $DB->AddOrder("view_id");
 			$res_attach = $DB->Select(null, null, true, true, true);
 			
 			while($row_attach = $DB->FetchAssoc($res_attach)) {
@@ -1950,10 +2160,11 @@ class EFiles
 				$row["attach_file_list"][$row_attach['id']]['subject_id'] = $row_attach["subject_id"];
 				$DB->SetTable("nsau_specialities");
 				$DB->AddField("name");
+        $DB->AddField("old");
 				$DB->AddCondFS("id", "=", $row_attach["spec_id"]);
 				$row_sub = $DB->Select();
 				if($row_sub = $DB->FetchAssoc($row_sub)) {
-					$row["attach_file_list"][$row_attach['id']]['spec_name'] = $row_attach["spec_code"].'.'.$row_attach["spec_type"].' - '.$row_sub["name"];
+					$row["attach_file_list"][$row_attach['id']]['spec_name'] = $row_attach["spec_code"].($row_sub["old"] == 1 ? '.'.$row_attach["spec_type"] : '').' - '.$row_sub["name"];
 				}
 				$row["attach_file_list"][$row_attach['id']]['spec_code'] = $row_attach["spec_code"];
 				$row["attach_file_list"][$row_attach['id']]['spec_id'] = $row_attach["spec_id"];
@@ -2067,9 +2278,16 @@ class EFiles
 	function moderation_files_list($get_unmoderated_files = false) {
 		global $DB, $Auth, $Engine;
 		
+		$spec_type_name = array('secondary' => 'СПО','bachelor' => 'Бакалавриат', 'magistracy' => 'Магистратура', 'higher' => 'ВПО');
+		
+		$this->output["spec_type_name"] = $spec_type_name; 
+		
 		$file_list = null;
 		$DB->SetTable("nsau_files", "f");
 		$DB->AddTable("nsau_files_subj", "s");
+		if(isset($_REQUEST["file_type"]) && $_REQUEST["file_type"]) {
+			$DB->AddTable("nsau_spec_type", "st"); 
+		}
 		$DB->AddExp("COUNT(distinct f.id)");
 		
 		$DB->AddCondFF("f.id", "=", "s.file_id");
@@ -2108,6 +2326,10 @@ class EFiles
 		}
 		elseif (isset($_REQUEST['file_status']) && !$_REQUEST['file_status']) {
 			$DB->AddCondFO("s.approved", "is null");
+		}
+		if(isset($_REQUEST["file_type"]) && $_REQUEST["file_type"]) {
+			$DB->AddCondFF("st.id", "=", "s.spec_type_id");
+			$DB->AddCondFS("st.type", "=", $_REQUEST["file_type"]); 
 		}
 		if (isset($_REQUEST['file_name']) && $_REQUEST['file_name']) { 
 			$DB->AddAltFS("f.name", " LIKE ", '%'.mysql_real_escape_string($_REQUEST['file_name']).'%');
@@ -2153,7 +2375,8 @@ class EFiles
 		
 		$DB->AddOrder("f.id", true);
 		$DB->AddOrder("s.id", true);
-		$DB->AddGrouping("f.id");//echo $DB->SelectQuery();  
+		$DB->AddGrouping("f.id");
+		//echo $DB->SelectQuery();  
 						
 						/*if (isset($data['page']) && is_numeric($data['page'])) {
 							$page = $data['page'];
@@ -2174,6 +2397,7 @@ class EFiles
 			"file_subject" =>  $_REQUEST['file_subject'],
 			"file_view" =>  $_REQUEST['file_view'],
 			"file_year" =>  $_REQUEST['file_year'], 
+			"file_type" =>  $_REQUEST['file_type'],
 			"file_user" =>  $_REQUEST['file_user'],
 			"file_status" =>  $_REQUEST['file_status'],
 			"file_education" => $_REQUEST['file_education'], 
@@ -2194,6 +2418,16 @@ class EFiles
 			$file_list[$row["id"]]["name"] = $row["name"].".".$row["filename"];
 			$file_list[$row["id"]]["author"] = $row["author"];
 			$file_list[$row["id"]]["year"] = $row["year"];
+			
+			$DB->SetTable("auth_users");
+			$DB->AddField("displayed_name");
+			$DB->AddCondFS("id", "=", $row["user_id"]);
+			//echo $DB->SelectQuery();
+			$res_user = $DB->Select(1);
+			
+			while($row_user = $DB->FetchAssoc($res_user)) {
+				$file_list[$row["id"]]["user_name"] = $row_user["displayed_name"];
+			}
 			
 			$DB->SetTable("nsau_files_subj", "s");
 			
@@ -2447,6 +2681,7 @@ class EFiles
 			"file_spec" => $_REQUEST['file_spec'],
 			"file_subject" =>  $_REQUEST['file_subject'],
 			"file_view" =>  $_REQUEST['file_view'],
+			"file_type" =>  $_REQUEST['file_type'],
 			"file_year" =>  $_REQUEST['file_year'], 
 			"file_user" =>  $_REQUEST['file_user'],
 			"file_status" => $_REQUEST['file_status'],
@@ -2577,7 +2812,7 @@ class EFiles
 				
 				if (isset($_GET['dep_id'])) 
 				{
-					$res = (isset($_GET['summary']) && $_GET['summary']) ? $DB->Exec("select count(distinct nf.id) as f_count,  su.name as sname, nfsu.subject_id as subj from nsau_files as nf right join nsau_files_subj as nfsu on nfsu.file_id = nf.id right join nsau_subjects as su on nfsu.subject_id = su.id where su.department_id= ".$_GET['dep_id']." group by nfsu.subject_id") : $DB->Exec("select count(distinct nf.id) as f_count,  ns.id_faculty as fac, su.name as sname, nfsu.subject_id as subj, f.name as fname from nsau_files as nf right join nsau_files_subj as nfsu on nfsu.file_id = nf.id right join nsau_subjects as su on nfsu.subject_id = su.id left join nsau_specialities as ns on ns.id = nfsu.spec_id left join nsau_faculties as f on f.id = ns.id_faculty where su.department_id=".$_GET['dep_id']." group by ns.id_faculty, nfsu.subject_id");
+					$res = (isset($_GET['summary']) && $_GET['summary']) ? $DB->Exec("select count(distinct nf.id) as f_count,  su.name as sname, nfsu.subject_id as subj from nsau_files as nf right join nsau_files_subj as nfsu on nfsu.file_id = nf.id right join nsau_subjects as su on nfsu.subject_id = su.id where su.department_id= ".$_GET['dep_id']." AND nfsu.approved='1' group by nfsu.subject_id") : $DB->Exec("select count(distinct nf.id) as f_count,  ns.id_faculty as fac, su.name as sname, nfsu.subject_id as subj, f.name as fname from nsau_files as nf right join nsau_files_subj as nfsu on nfsu.file_id = nf.id right join nsau_subjects as su on nfsu.subject_id = su.id left join nsau_specialities as ns on ns.id = nfsu.spec_id left join nsau_faculties as f on f.id = ns.id_faculty where su.department_id=".$_GET['dep_id']." AND nfsu.approved='1' group by ns.id_faculty, nfsu.subject_id");
 				
 					if ($res)
 						while($row = $DB->FetchAssoc($res))  {
@@ -2645,7 +2880,7 @@ class EFiles
 				$DB->AddField("st.type");
 				$DB->AddCondFF("s.code", "=", "st.code");
 				$DB->AddOrder("s.name");*/
-				if ($res = $DB->Exec("SELECT fs.spec_id as id, fs.spec_code as code, s.name,  fs.spec_type as type, count(*) as total FROM nsau_files_subj fs left join nsau_specialities as s on fs.spec_id=s.id  group by fs.spec_code having fs.spec_code is not null order by s.name"))
+				if ($res = $DB->Exec("SELECT fs.spec_id as id, fs.spec_code as code, s.name,  fs.spec_type as type, count(*) as total FROM nsau_files_subj fs left join nsau_specialities as s on fs.spec_id=s.id WHERE fs.approved='1' group by fs.spec_code having fs.spec_code is not null order by s.name"))
 				//if ($res = $DB->Exec("select distinct s.id, s.code, s.name, st.type from nsau_specialities as s inner join nsau_spec_type as st on st.code = s.code order by s.name")) 
 				{
 					$spec_types = array("bachelor" => 62, "secondary" => 51, "magistracy" => 68, "higher" => 65);
@@ -2675,7 +2910,7 @@ class EFiles
 					$spec_code = $spec_info[0];
 					$spec_type = $spec_info[1];*/
 				}
-				if (isset($_GET['spec_id']) && $res = $DB->Exec("select count(nf.id) as f_count, nfv.view_name as uname, su.name as sname from nsau_files as nf  right join nsau_files_subj as nfsu on nfsu.file_id=nf.id right join nsau_subjects as su on su.id = nfsu.subject_id right join nsau_file_view as nfv on nfv.id = nfsu.view_id where nfsu.spec_id=".$spec_id."  group by nfsu.view_id, nfsu.subject_id"))
+				if (isset($_GET['spec_id']) && $res = $DB->Exec("select count(nf.id) as f_count, nfv.view_name as uname, su.name as sname from nsau_files as nf  right join nsau_files_subj as nfsu on nfsu.file_id=nf.id AND nfsu.approved='1' right join nsau_subjects as su on su.id = nfsu.subject_id right join nsau_file_view as nfv on nfv.id = nfsu.view_id where nfsu.spec_id=".$spec_id."  group by nfsu.view_id, nfsu.subject_id"))
 				{ 
 					while($row = $DB->FetchAssoc($res))  {
 						if ($row['f_count'])
@@ -2711,11 +2946,11 @@ class EFiles
 		$cyr_text_fields = array('name', 'descr', 'author', 'place', 'view_name');
 		switch ($query_type) {
 			case 'for_dep':
-				$res = (isset($query_data["faculty_id"])) ? $DB->Exec("SELECT distinct f.id,f.name,f.descr, nfw.view_name, f.author,f.year,f.volume,f.edition,f.place FROM nsau_files AS f inner JOIN nsau_files_subj AS su on su.file_id = f.id AND su.subject_id = ".$query_data['subject_id']."  INNER JOIN nsau_specialities as s on s.id=su.spec_id AND s.id_faculty =".$query_data['faculty_id']." LEFT JOIN nsau_file_view AS nfw on nfw.id = su.view_id") : $DB->Exec("SELECT distinct f.id,f.name,f.descr, nfw.view_name, f.author,f.year,f.volume,f.edition,f.place FROM nsau_files AS f inner JOIN nsau_files_subj AS su on su.file_id = f.id AND su.subject_id = ".$query_data['subject_id']."  LEFT JOIN nsau_file_view AS nfw on nfw.id = su.view_id") ;
+				$res = (isset($query_data["faculty_id"])) ? $DB->Exec("SELECT distinct f.id,f.name,f.descr, nfw.view_name, f.author,f.year,f.volume,f.edition,f.place FROM nsau_files AS f inner JOIN nsau_files_subj AS su on su.file_id = f.id AND su.subject_id = ".$query_data['subject_id']." AND su.approved='1' INNER JOIN nsau_specialities as s on s.id=su.spec_id AND s.id_faculty =".$query_data['faculty_id']." LEFT JOIN nsau_file_view AS nfw on nfw.id = su.view_id") : $DB->Exec("SELECT distinct f.id,f.name,f.descr, nfw.view_name, f.author,f.year,f.volume,f.edition,f.place FROM nsau_files AS f inner JOIN nsau_files_subj AS su on su.file_id = f.id AND su.subject_id = ".$query_data['subject_id']." AND su.approved='1' LEFT JOIN nsau_file_view AS nfw on nfw.id = su.view_id") ;
 			break;
 			
 			case 'for_spec':
-				$res = $DB->Exec("SELECT distinct f.id,f.name,f.descr, nfw.view_name, f.author,f.year,f.volume,f.edition,f.place FROM nsau_files AS f inner JOIN nsau_files_subj AS su on su.file_id = f.id AND su.subject_id = ".$query_data['subject_id']."  AND su.view_id = ".$query_data['umkd_id']." AND su.spec_id = ".$query_data['spec_id']." LEFT JOIN nsau_file_view AS nfw on nfw.id = su.view_id");//." AND sp.spec_type = ".$query_data['spec_id']);
+				$res = $DB->Exec("SELECT distinct f.id,f.name,f.descr, nfw.view_name, f.author,f.year,f.volume,f.edition,f.place FROM nsau_files AS f inner JOIN nsau_files_subj AS su on su.file_id = f.id AND su.subject_id = ".$query_data['subject_id']." AND su.approved='1' AND su.view_id = ".$query_data['umkd_id']." AND su.spec_id = ".$query_data['spec_id']." LEFT JOIN nsau_file_view AS nfw on nfw.id = su.view_id");//." AND sp.spec_type = ".$query_data['spec_id']);
 			break;
 		}
 		if ($res) {
@@ -2831,6 +3066,7 @@ class EFiles
 		$DB->AddField("spec.id", "spec_id");
 		$DB->AddField("spec.code", "code");
 		$DB->AddField("spec.name", "spname");
+	    $DB->AddField("spec.old");
 		$DB->AddOrder("spec.name");		
 		/*if(isset($deps))
 			foreach ($deps as $dep)
@@ -2841,6 +3077,7 @@ class EFiles
 		while($row = $DB->FetchAssoc($res)) {
 			$this->output["spec_list"][$row['spec_id']]['name'] = $row['spname'];
 			$this->output["spec_list"][$row['spec_id']]['code'] = $row['code'];
+		    $this->output["spec_list"][$row['spec_id']]['old'] = $row['old'];
 			$DB->SetTable("nsau_spec_type");
 			$DB->AddCondFS("spec_id","=", $row['spec_id']);
 			$DB->AddCondFS("code","=", $row['code']);
@@ -2849,6 +3086,14 @@ class EFiles
 			while($row1 = $DB->FetchAssoc($res1)) {
 				$this->output["spec_list"][$row['spec_id']]['type'][$row1['id']]['name'] = $spec_type_name[$row1['type']];
 				$this->output["spec_list"][$row['spec_id']]['type'][$row1['id']]['code'] = $spec_type_code[$row1['type']];
+        if($row['old'] == 0) {
+          $DB->SetTable("nsau_qualifications");
+          $DB->AddCondFS("id", "=", $row1['qual_id']);
+          $res2 = $DB->Select(1);
+          while($row2 = $DB->FetchAssoc($row2)) {
+            $this->output["spec_list"][$row['spec_id']]['type'][$row1['id']]['name'] = $row2["name"];
+          } 
+        }
 			}
 			$DB->SetTable("nsau_profiles");
 			$DB->AddCondFS("spec_id","=", $row['spec_id']);

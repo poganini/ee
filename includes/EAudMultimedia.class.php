@@ -1,8 +1,8 @@
 <?php
 
 class EAudMultimedia
-// version: 1.00.1
-// date: 2013-11-26
+// version: 1.00.4
+// date: 2014-01-20
 {
   var $output;
 	var $node_id;
@@ -21,7 +21,11 @@ class EAudMultimedia
     
     $uri_parts = explode("/", $this->module_uri);
     $parts2 = explode(";", $params);
-    //print_r($parts2); 
+    //print_r($uri_parts); 
+    
+    if($uri_parts[0] == 'history') {
+      $this->output["history"] = 1;
+    }
     
     $DB->SetTable("nsau_auditorium", "a");
     $DB->AddTable("nsau_buildings", "b");
@@ -29,10 +33,13 @@ class EAudMultimedia
     $DB->AddCondFS("a.multimedia", "=", 1); 
     $DB->AddCondFF("a.building_id", "=", "b.id");
     $DB->AddFields(array("a.id", "a.name","b.label"));
+    $DB->AddField("b.id", "bid");
+    $DB->AddField("b.name", "bname");
     $DB->AddOrder('a.name');
     $res = $DB->Select();
     while($row = $DB->FetchAssoc($res)){
-      $this->output['auditories'][] = $row;//print_r($row);  
+    	$this->output['buildings'][$row["bid"]]["name"] = $row["bname"];
+	    $this->output['buildings'][$row["bid"]]['auditories'][] = $row;
     }
     
     $this->output["applications"] = array();
@@ -57,12 +64,13 @@ class EAudMultimedia
         $DB->AddCondFS("auditorium_id", "=", $_POST['auditorium']);
         $DB->AddCondFS("date", "=", $_POST['date']);
         $DB->AddCondFS("num", "=", $_POST['num']);
+        //echo $DB->SelectQuery();
         
         $res = $DB->Select(1);
         if($row = $DB->FetchAssoc($res)){
-          if($row["lecturer_id"] != $Auth->user_id)
+          //if($row["lecturer_id"] != $Auth->user_id)
           $this->output["messages"]["bad"][] = "Аудитория уже занята на это время";
-          else $this->output["messages"]["good"][] = "Заявка успешно добавлена";
+          //else $this->output["messages"]["good"][] = "Заявка успешно добавлена";
         }
         else {
           $DB->SetTable("nsau_auditorium_multimedia"); 
@@ -78,12 +86,13 @@ class EAudMultimedia
         }
       } 
       
-      $show_all = $Engine->OperationAllowed($this->module_id, "multimedia.list", -1, $Auth->usergroup_id);
+      $show_all = $this->output["show_all"] = $Engine->OperationAllowed($this->module_id, "multimedia.list", -1, $Auth->usergroup_id);
       $DB->SetTable("nsau_auditorium_multimedia", "m"); 
         $DB->AddTable("nsau_auditorium", "a");
         $DB->AddFields(array("m.id", "m.date", "m.num", "m.auditorium_id", "a.name"));
         $DB->AddTable("nsau_buildings", "b");
-        $DB->AddCondFS("a.building_id", "=", 14);
+        //$DB->AddCondFS("a.building_id", "=", 14);
+        $DB->AddCondFS("a.multimedia", "=", 1);
         $DB->AddCondFF("a.building_id", "=", "b.id");
         $DB->AddFields(array("b.label"));
         $DB->AddTable("nsau_people", "p");
@@ -92,8 +101,10 @@ class EAudMultimedia
         $DB->AddField("p.name", "first_name");
         if(!$show_all)
         $DB->AddCondFS("m.lecturer_id", "=", $Auth->user_id);
+        if(empty($this->output["history"]))
         $DB->AddCondFS("m.date", ">=", date("Y-m-d")); 
         $DB->AddCondFF("m.auditorium_id", "=", "a.id");
+        $DB->AddOrder("m.date", true); 
         //echo $DB->SelectQuery(); 
         $res = $DB->Select(); 
         while($row = $DB->FetchAssoc($res)){

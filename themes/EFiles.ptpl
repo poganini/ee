@@ -1,0 +1,1429 @@
+<?php
+// version: 2.10.22
+// date: 2014-03-21
+global $Engine, $Auth, $EE;
+
+if(isset($MODULE_OUTPUT['scripts_mode'])) {
+	switch($MODULE_OUTPUT['scripts_mode']) {
+		case 'reports': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			FilesReports = function(moduleId) {
+			
+				$('#departments_list').bind('change', function () {
+					if (window.location.href.indexOf('dep_id=') == -1) 
+						window.location.href = window.location.href+'?dep_id='+this.options[this.selectedIndex].id; else window.location.href = window.location.href.replace( new RegExp('dep_id=[0-9]+') ,'dep_id='+this.options[this.selectedIndex].id)
+				});
+				
+				$('#show_summary_checker').bind('change', function () {
+					if (this.checked)
+						window.location.href = window.location.href.replace('&summary=1', '')
+					else 
+						window.location.href = window.location.href+'&summary=1';;
+				});
+				
+				if(document.getElementById('files_info_cont')) {
+					$(document).bind('click', function () {document.getElementById('files_info_cont').style.display = 'none';});
+				}
+				show_files_by_subject_and_umkd = function(obj_id) {
+					attach_params = {'type': 'for_spec'};
+					request_parts = obj_id.split('-');
+					attach_params['subject_id'] = request_parts[0];
+					if (request_parts[1]) attach_params['umkd_id'] = request_parts[1];
+					spec_info  = jQuery('#specialities_list option[selected]').attr('id').split('.');
+					attach_params['spec_id'] = spec_info[0];
+					attach_params['spec_type'] = spec_info[1];
+					if (attach_params) {	
+						var request = {'mode': 'json', 'module': moduleId, 'params':'get_files_by_params', 'data': attach_params};					
+						jQuery.getJSON('/ajax_mode/', request, function (response) {
+							form_files_info(obj_id, response);
+						});
+					};
+				};
+				
+				form_files_info = function(obj_id,response) { 
+					if (response.files && response.files.length) { 
+						id_str = '<ul>';
+						for (ind in response.files) {
+							id_str+='<li><a href="/file/'+response.files[ind]['id']+'" onclick="return !window.open(this.href)">';
+							id_substr = '';
+							for (prop in response.files[ind]) {
+								if (prop != 'id' && response.files[ind][prop] && response.files[ind][prop]!='0' && prop!='name') {
+									switch(prop) {
+										case 'descr': {
+											id_substr += '"'+response.files[ind][prop]+'"';
+										};
+										break;
+										case 'year': {
+											id_substr += response.files[ind][prop]+' г.';
+										};
+										break;
+										case 'volume': {
+											id_substr += response.files[ind][prop]+' стр.';
+										};
+										break;
+										case 'edition': {
+											id_substr += response.files[ind][prop]+' экз.';
+										};
+										break;
+										case 'edition': {
+											id_substr += response.files[ind][prop]+' экз.';
+										};
+										break;
+										case 'author': {
+											id_substr += '</a>'+response.files[ind][prop];
+										};
+										break;
+										default: {
+											id_substr += response.files[ind][prop];
+										};
+										break;	
+									};
+									id_substr += ', ';
+								};
+							};
+							id_str += id_substr.substr(0, id_substr.length-2)+'</li>';
+						};
+						id_str += '</ul>';
+						coords = jQuery('#'+obj_id).offset();
+						jQuery('#files_info_cont').html('<div>'+id_str+'</div>');
+						jQuery('#files_info_cont').css('left', coords['left']-30);
+						jQuery('#files_info_cont').css('top', coords['top']-190);
+						jQuery('#files_info_cont').css('display', 'block');
+					};
+				};
+				
+				show_files_by_subject_and_faculty = function(obj_id) { 
+					attach_params = {'type': 'for_dep'};
+					
+					if (obj_id.indexOf("-") != -1) {
+						request_parts = obj_id.split('-');
+						attach_params['subject_id'] = request_parts[0];
+						if (request_parts[1]) attach_params['faculty_id'] = request_parts[1]; 
+					}
+					else {
+						attach_params['subject_id'] = obj_id; 
+					} 
+					if (attach_params) {
+						var request = {'mode': 'json', 'module': moduleId, 'params':'get_files_by_params', 'data': attach_params};					
+						jQuery.getJSON('/ajax_mode/', request, function (response) {
+							form_files_info(obj_id, response);
+						});
+					};
+				};
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'show_attach_file': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			ShowAttachFile = function() {
+				$('.files_list .file_item_info .show_attach_file').live('click', function() {
+					$(this).parents('.file_list_row').find('.attach_file_list').toggleClass('hidden');
+					return false;
+				});
+			};
+		});
+	</script>
+END;
+		}
+		break;
+
+		case 'files_list': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			FilesList = function(moduleId,uploadMaxFilesize,maxSize,msofficeUpload) {
+				trace_upload_progress = function(upfile_id, progress_bar) {
+					if (upfile_id) {
+						var time = new Date().getTime();
+						var request = {'module': moduleId, 'mode': 'html_code', 'params': 'get_upload_progress', 'data': {'upfile_id': upfile_id, 'time': time}, '{$MODULE_OUTPUT['upfile_name']}': upfile_id };
+						$.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							success: function(data) {
+								if(!(!data || !data.documentElement)) {
+									var rootNodeName = data.documentElement.nodeName;
+									if(rootNodeName != 'parsererror') {
+										xmlDocElem = data.documentElement;
+										if(rootNodeName == 'upload_progress') {
+											var process = xmlDocElem.getElementsByTagName('process').item(0).firstChild.data;
+											var process_time = xmlDocElem.getElementsByTagName('time').item(0).firstChild.data;
+											if(upload_started) {
+												progress_bar.html(process+'%');
+											} else {
+												upload_started = false;
+												progress_bar.html('Файл загружен.');
+											};
+										};
+									};
+								};
+								if(upload_started) {
+									setTimeout(function() {
+										trace_upload_progress(upfile_id, progress_bar);
+									}, 1);
+								};		
+							}
+						});
+					};
+				};
+				
+				validate_size = function(form) { 
+					file = form.find('#upload_file');
+					if(file.val().length == 0) {
+						alert('Файл не выбран');
+						return false;
+					};
+					var size = 0;
+					if($.trim(form.find('#upload_descr').val()) == '') {
+						alert('Укажите полное название файла.');
+						return false;
+					};
+					try {
+						if ($.browser.msie) {
+							var myFSO = new ActiveXObject('Scripting.FileSystemObject');
+							var filepath = file.val();
+							var thefile = myFSO.getFile(filepath);
+							size = thefile.size;   		
+						} else {
+							if (file[0].files[0].size) {
+								size = file[0].files[0].size;
+							};
+						};
+					} catch(e) {};
+					if(size > uploadMaxFilesize) {
+						alert('Размер вашего файла превышает максимально допустимый ('+maxSize+'Б)');
+						file.parentNode.innerHTML = file.parentNode.innerHTML;
+						return false;
+					};
+					var file_type = file.val().split('.');
+					file_type = file_type[file_type.length - 1];
+					if(!msofficeUpload && (file_type == 'doc' || file_type == 'docx')) {
+						alert('В соответсвии с регламентом на портале не размещаются форматы файлов Microsoft Office.\\nЭти данные необходимо конвертировать в формат pdf. \\nЗа помощью обратитесь к системному администратору вашего подразделения.');
+						return false;
+					};
+					return true;
+				};
+        
+		        validate_size_edit = function(form) { 
+              editfile = form.find('input[name=editfile]').val();
+			         file = form.find('#upload_file_'+editfile);
+          
+					/*if(file.val().length == 0) {
+						alert('Файл не выбран');
+						return false;
+					};*/
+					var size = 0;
+					if($.trim(form.find('#upload_descr_'+editfile).val()) == '') {
+						alert('Укажите полное название файла.');
+						return false;
+					};
+					try {
+						if ($.browser.msie) {
+							var myFSO = new ActiveXObject('Scripting.FileSystemObject');
+							var filepath = file.val();
+							var thefile = myFSO.getFile(filepath);
+							size = thefile.size;   		
+						} else {
+							if (file[0].files[0].size) {
+								size = file[0].files[0].size;
+							};
+						};
+					} catch(e) {};
+					if(size > uploadMaxFilesize) {
+						alert('Размер вашего файла превышает максимально допустимый ('+maxSize+'Б)');
+						file.parentNode.innerHTML = file.parentNode.innerHTML;
+						return false;
+					};
+					var file_type = file.val().split('.');
+					file_type = file_type[file_type.length - 1];
+					if(!msofficeUpload && (file_type == 'doc' || file_type == 'docx')) {
+						alert('В соответсвии с регламентом на портале не размещаются форматы файлов Microsoft Office.\\nЭти данные необходимо конвертировать в формат pdf. \\nЗа помощью обратитесь к системному администратору вашего подразделения.');
+						return false;
+					};
+					return true;
+				};
+					
+				update_file_select = function() {
+					if($('#privyazka').length) {
+						$('#privyazka select[name=\'sel_file\']').attr({'disabled':'disabled'});
+						var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_update_file_select'};
+						$.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							success: function(data) {
+								$('#privyazka select[name="sel_file"]').replaceWith(data);
+							}
+						});
+					};
+				};
+				
+				var upload_started = false;
+				$('#file_list_LK .file_item_info .pointer').live('click', function() {
+					//$(this).parents('.file_list_row').find('.edit_file_form').toggleClass('hidden');
+					var f_id = $(this).attr('id');
+					f_id = f_id.replace('editbutton_','');
+					var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_teachers', 'data': {'f_id': f_id} };
+					if($('.file_list_row#file_row_'+f_id+'').find('.edit_file_form').is(':hidden'))
+					$.ajax({
+						//type: 'POST',
+						url: '/ajax_mode/',
+						data: request,
+						success: function(data) {
+							$('select[name="sel_teacher_'+f_id+'"]').replaceWith(data);
+							$('.file_list_row#file_row_'+f_id+'').find('.edit_file_form').removeClass('hidden');
+						}
+					});
+					else $(this).parents('.file_list_row').find('.edit_file_form').addClass('hidden'); 
+					return false;
+				});
+				$('#file_list_LK .edit_file_form input[type=button]').live('click', function() {
+					$(this).parents('.edit_file_form').addClass('hidden');
+				});
+				/*$('#file_list_LK .file_item_info .show_attach_file').click(function() {
+					$(this).parents('.file_list_row').find('.attach_file_list').toggleClass('hidden');
+					return false;
+				});*/
+				
+				if($('#file_list_LK').length) {
+					$('#file_list_LK .file_list_row .delet_file').live('click', function() {
+						if(window.confirm('Вы уверены, что хотите удалить файл '+$(this).parents('.file_list_row').find('.file_name').html()+'?')) {
+							var f_id = $(this).attr('href').split('?');
+							f_id = f_id[1].split('=');
+							f_id = parseInt(f_id[1]);
+							var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_del_file', 'data': {'f_id': f_id} };
+							$.ajax({
+								type: 'POST',
+								url: '/ajax_mode/', 
+								data: request,
+								success: function(data) {
+									if(!(!data || !data.documentElement)) {
+										var rootNodeName = data.documentElement.nodeName;
+										if(rootNodeName != 'parsererror') {
+											xmlDocElem = data.documentElement;
+											if(rootNodeName == 'del_status') {
+												var process = xmlDocElem.firstChild.data;
+												if(process == 1) {
+													$('#file_row_'+f_id).remove();
+													update_file_select();
+													if($('#file_list_LK .file_list_cont .file_list_row').length) {
+														$('#file_and_subj_LK').removeClass('hidden');
+													} else {
+														$('#file_list_LK .file_list_cont').html('Файлы отсутствуют');
+														$('#file_and_subj_LK').addClass('hidden');
+													};
+												};
+											};
+										};
+									};
+								}
+							});
+						};
+						return false;
+					});
+					
+					if($('.attach_file_list > ul li').length) {
+						$('.attach_file_list .attach_row .delet_attach').live('click', function() {
+							if(window.confirm('Вы уверены, что хотите удалить привязку'/*+$(this).parents('.file_list_row').find('.file_name').html()*/+'?')) {
+								var a_id = $(this).attr('href').split('?');
+								a_id = a_id[1].split('=');
+								a_id = parseInt(a_id[1]);
+								var file_list = $(this).parents('.attach_file_list');
+								var file_id = file_list.attr('id');
+								file_id = file_id.replace('attach_file_list_', '');
+								//return false; 
+								var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_del_attach', 'data': {'a_id': a_id} };
+								$.ajax({
+									type: 'POST',
+									url: '/ajax_mode/', 
+									data: request,
+									success: function(data) {
+										if(!(!data || !data.documentElement)) {
+											var rootNodeName = data.documentElement.nodeName;
+											if(rootNodeName != 'parsererror') {
+												xmlDocElem = data.documentElement;
+												if(rootNodeName == 'del_status') {
+													var process = xmlDocElem.firstChild.data;
+													if(process == 1) {
+														$('#attach_row_'+a_id).remove();
+														$('.attach_file_list:visible').each(function(i){
+															if($(this).find('li.attach_row').length) {
+																$(this).removeClass('hidden');
+															} 
+															else {
+																$(this).addClass('hidden');
+																$('#show_attach_file_'+file_id).remove();
+															}
+														});
+													}
+												}
+											}
+										}
+									}
+								});	
+							}
+					
+							return false;
+						});
+					}
+					
+					if($('#add_file_LK #fileform #upload_file').length) {
+						$('#add_file_LK #fileform #upload_file').change(function() {
+							var file_type = $(this).val().split('.');
+							file_type = file_type[file_type.length - 1];
+							if(!msofficeUpload && (file_type == 'doc' || file_type == 'docx')) {
+								alert('В соответсвии с регламентом на портале не размещаются форматы файлов Microsoft Office.\\nЭти данные необходимо конвертировать в формат pdf. \\nЗа помощью обратитесь к системному администратору вашего подразделения.');
+								$(this).val('');
+							};
+						});
+					};
+						
+					var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_add_file'};
+					$('#add_file_LK #fileform').ajaxForm({
+						dataType : 'html',
+						type: 'POST',
+						data: request,
+						url: '/ajax_mode/',
+						resetForm: true,
+						beforeSubmit: function(a,f,o) {
+							if(validate_size($(f))) {
+								setTimeout(function() {
+									upload_started = true;
+									trace_upload_progress($(f).find('.upfile_token').val(), $('#add_file_LK .progress-bar'));
+								}, 1);
+								$('#add_file_LK .progress-bar').html('Загрузка...');
+							} else {
+								return false;
+							};
+						},
+						onprogress: function(position,total) {
+							$('#add_file_LK .progress-bar1').html(position);
+						},
+						success: function(data,statusText) {
+							update_file_select();
+							upload_started = false;
+							$('#add_file_LK .progress-bar').html('Файл загружен.');
+							setTimeout(function() {
+								$('#add_file_LK .progress-bar').html('');
+							}, 2000);
+							if($('#file_list_LK .file_list_cont .file_list_row').length) {
+								$('#file_list_LK .file_list_cont').append(data);
+								$('#file_and_subj_LK').removeClass('hidden');
+							} else {
+								$('#file_list_LK .file_list_cont').html(data);
+								$('#file_and_subj_LK').removeClass('hidden');
+							};
+						}
+					});
+          
+					$('.file_list_row .edit_file_form').live('submit', function(e){
+						var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_add_file'};
+				        var editfile = 0;
+                var row = null; 
+                
+				        $(this).ajaxSubmit({
+			              dataType : 'html',
+			              type: 'POST',
+			              data: request,
+			              url: '/ajax_mode/',
+			              resetForm: true,
+			              beforeSubmit: function(a,f,o){ 
+			                editfile = $(f).find('input[name=editfile]').val();
+                      row = $('#edit_'+editfile).parents('.file_list_row');
+			                if(validate_size_edit($(f))) {
+			                  setTimeout(function() {
+			                    upload_started = true;
+                          file = $(f).find('#upload_file_'+editfile);
+                          if(file.val().length != 0)
+			                    trace_upload_progress($(f).find('.upfile_token').val(), $('#add_file_LK .progress-bar'));
+			                  }, 1);
+											$(row).find('.progress-bar').html('Загрузка...');
+			                } else {
+			                  return false;
+			                };
+			              },
+			              onprogress: function(position,total) {
+			                $(row).find('.progress-bar').html(position);
+			              },
+			              success: function(data,statusText) {
+			                upload_started = false;
+                      row = $('#edit_'+editfile).parents('.file_list_row');
+			                $(row).find('.progress-bar').html('Файл загружен.');
+			                setTimeout(function() {
+			                  $(row).find('.progress-bar').html('');
+			                }, 2000);                
+			                var is_hidden = $('#file_row_'+editfile+' .attach_file_list').hasClass('hidden');
+			                row.replaceWith(data);
+			                //row.remove();
+			                //$('#edit_'+editfile).removeClass('hidden');
+			                //if(!is_hidden) 
+			                //$('#file_row_'+editfile+' .attach_file_list').removeClass('hidden');
+			                //$('#edit_'+editfile).ajaxForm(this);
+			              }
+			            });
+						
+						e.preventDefault();
+						return false;
+					});
+				};
+        
+        
+        var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split(''); 
+        
+        String.uuid = function() {
+          var chars = CHARS, uuid = new Array(36), rnd=0, r;
+          for (var i = 0; i < 36; i++) {
+            if (i==8 || i==13 ||  i==18 || i==23) {
+              uuid[i] = '-';
+            } else if (i==14) {
+              uuid[i] = '4';
+            } else {
+              if (rnd <= 0x02) rnd = 0x2000000 + (Math.random()*0x1000000)|0;
+              r = rnd & 0xf;
+              rnd = rnd >> 4;
+              uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+            }
+          }
+          return uuid.join('');
+        };
+        
+        
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+          // Работает
+          $('#add_file_LK').hide();
+          $('#multifile_LK').show();
+        } else {
+          alert('File API не поддерживается данным браузером');
+          $('#multifile_LK').hide();
+          $('#add_file_LK').show(); 
+        }
+          
+        var multifile_count = 0;
+        var html_tpl = $('#multifile_form_tpl').html();
+        var files = []; 
+        var active_uploads = 0;
+        if ($.browser.mozilla) {
+          $('.multifile_input').attr('multiple', 'multiple');
+        }
+        
+        $('#multifile_form_tpl').remove(); 
+        
+        $('.multifile_input').live('change', function(){
+          for(var f = 0; f < this.files.length; f++) {
+          var file_type = this.files[f].name.split('.');
+          file_type = file_type[file_type.length - 1];
+          if(!msofficeUpload && (file_type == 'doc' || file_type == 'docx')) {
+            alert('В соответсвии с регламентом на портале не размещаются форматы файлов Microsoft Office.\\nЭти данные необходимо конвертировать в формат pdf. \\nЗа помощью обратитесь к системному администратору вашего подразделения.');
+            continue; 
+          };
+          multifile_count++;  
+          files[multifile_count] = this.files[f]; 
+          console.log('Выбран файл: ' + this.files[f].name);
+          var id = multifile_count;//String.uuid(); //Math.random(100, 99999); 
+          var html = html_tpl; 
+          while(html.indexOf('{id}') != -1) {
+            html = html.replace('{id}', id);  
+          }
+          $('#selected_files').append('<li data-id="'+id+'" id="multifile_sel_'+id+'">'+this.files[f].name+'<em></em></li>');
+          $('#multifile_forms').append('<div class="multifile_item" id="multifile_form_'+id+'">'+html+'</div>');
+          $('.multifile_item').addClass('hidden');
+          $('#multifile_form_'+id+'').removeClass('hidden');
+          
+          $('#selected_files').removeClass('hidden');
+          var parent = this.parentNode;
+          //$('#multifile_form_'+id+' form .file_field').get(0).appendChild(this);
+          $(parent).append($(this).prop('outerHTML'));
+          $(this).css('position', '');
+          $(this).css('opacity', ''); 
+          $(this).css('z-index', ''); 
+          $(this).hide();
+                    
+          $(this).attr('id', 'multifile_input_'+id); 
+          
+          $('#multifile_form_'+id+' form').bind('submit', function(e){
+            var id = $(this).attr('data-id');
+            e.stopPropagation();
+            e.preventDefault(); 
+            if($.trim($(this).find('input[name="upload_descr"]').val()) == '') {
+              alert('Укажите полное название файла.');
+              return false;
+            } 
+            
+            var file = $('#multifile_input_'+id);console.log(file.val()) ;
+            try {
+              if ($.browser.msie) {
+                var myFSO = new ActiveXObject('Scripting.FileSystemObject');
+                var filepath = file.val();
+                var thefile = myFSO.getFile(filepath);
+                size = thefile.size;   		
+              } else {
+                if (files[id].size) {
+                  size = files[id].size;
+                };
+              };                     
+              console.log("Размер файла: "+size);
+            } catch(e) {};
+            if(size > uploadMaxFilesize) {
+              alert('Размер вашего файла превышает максимально допустимый ('+maxSize+'Б)');
+              //file.parentNode.innerHTML = file.parentNode.innerHTML;
+              return false;
+            };
+            
+            var data = new FormData(this);//null;
+            data.append('upload_file', files[id]);
+            console.log(data);
+            var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_add_file'};
+            for(var i in request) {
+              data.append(i, request[i]);
+            } 
+            
+            $.ajax({
+                    dataType : 'html',
+			              type: 'POST',
+			              data: data,
+                    processData: false, 
+                    contentType: false,//"multipart/form-data; boundary="+data.boundary,
+			              url: '/ajax_mode/',
+                    beforeSend: function(jqxhr, settings) {
+                      $('#multifile_progress_LK').html('Идет загрузка файла ' + files[id].name + '...');
+                      console.log(settings);
+                      active_uploads++; 
+                    },
+                    success: function(data, statusText) {
+                      $('#multifile_form_'+id+'').remove();
+                      $('#multifile_sel_'+id+'').remove();
+                      if($('#file_list_LK .file_list_cont .file_list_row').length) {
+                        $('#file_list_LK .file_list_cont').append(data);
+                        $('#file_and_subj_LK').removeClass('hidden');
+                      } else {
+                        $('#file_list_LK .file_list_cont').html(data);
+                        $('#file_and_subj_LK').removeClass('hidden');
+                      };
+                      
+                      
+                      
+                      update_file_select();                    
+                      
+                      $('#multifile_progress_LK').html('Файл '+files[id].name+' загружен.');
+                      setTimeout(function() {
+                        $('#multifile_progress_LK').html('');
+                      }, 2000);
+                    },
+                    complete: function(jqxgr, textStatus) {
+                      active_uploads--;
+                    }
+            });
+            /*$(this).ajaxSubmit({
+                    dataType : 'html',
+			              type: 'POST',
+			              data: data,
+                    processData: false,
+			              url: '/ajax_mode/',
+            });*/ 
+          });
+          
+          }
+        });
+        
+        $('#multifile_upload_selected').bind('click', function(){
+          $('#selected_files .selected').each(function(i, item) {
+            console.log(item);
+            var id = $(item).attr('data-id');
+            console.log("Загружаем файл: "+files[id].name);            
+            $('#multifile_form_'+id+' form').trigger('submit');
+          })
+        });
+        
+        $('#selected_files li').live('click', function(e){
+          var id = $(this).attr('data-id');
+          console.log(files[id].name);
+          
+          $('.multifile_item').addClass('hidden');
+          $('#multifile_form_'+id+'').removeClass('hidden');
+          if(!e.ctrlKey)  // Если нажата Ctrl - не снимать выделение остальных
+          $('#selected_files li').removeClass('selected');
+          if(!$(this).hasClass('selected')) {
+            $(this).addClass('selected');
+          } 
+          else {
+            if(e.ctrlKey) { $(this).removeClass('selected'); }
+          }
+        }).live('dblclick', function(e){
+          var id = $(this).attr('data-id');
+          console.log(id);
+          console.log("Загружаем файл: "+files[id].name);            
+          $('#multifile_form_'+id+' form').trigger('submit');
+          e.stopPropagation();
+          e.preventDefault();
+        }); 
+        
+        $('#selected_files li em').live('click', function(e){
+          var id = $(this).parent().attr('data-id');
+          console.log(id);
+          $('.multifile_item').addClass('hidden');             
+          $('#multifile_form_'+id+'').closest('.multifile_item').removeClass('hidden');
+          $(this).parent().remove();          
+          $('#multifile_form_'+id+'').remove();
+          $('.multifile_item:last').removeClass('hidden');
+          e.stopPropagation();
+        });                                              
+			};
+		});
+	</script>
+END;
+		}
+		break;
+
+		case 'attach_file': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			FileAttach = function(moduleId) {
+				$('#file_and_subj_LK .sel_subject_list dt label').click(function() {
+					if($(this).find('input').is(':checked')) {
+						$(this).parent().addClass('checked').next('dd').addClass('checked');
+					} else {
+						$(this).parent().removeClass('checked').next('dd').removeClass('checked');
+					}				
+				});
+				$('#file_and_subj_LK .sel_subject_list dd .education').change(function() {
+					/*if($(this).val() == 'Заочная') {
+						$(this).parent().find('.semester').removeClass('hidden');
+					} else {
+						$(this).parent().find('.semester').addClass('hidden');
+					};*/
+				});
+			};
+			ajaxSearchSubj = function(moduleId) {
+				var field = $('#subject_list').find('option');
+ 
+				// собственно поиск
+				/*$('#subject_search').live('keyup', function() {
+				    if($(this).val().length < 4 && $(this).val().length != 0) return ;
+					var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_search_subj', 'data': {'q': $(this).val()} };
+					$.ajax({
+						type: 'POST',
+						url: '/ajax_mode/', 
+						data: request,
+						success: function(data) {
+							$('#subject_list').replaceWith(data);//$('#subject_search').parent().parent().next('dd').html(data); 
+						}
+					}); 
+				});*/
+				$('#subject_search').autocomplete({
+					delay: 500,
+					source: function(request, response) {
+						//if(request.term.length < 3) return;
+						var request = {'module': moduleId, 'mode': 'json', 'params': 'ajax_autocomplete_subj', 'data': {'q': request.term} };
+					
+						$.ajax({
+						'url': '/ajax_mode/',
+						dataType: 'json',
+						data: request, 
+						success: function(json) {
+								response($.map(json, function(item) {
+								return {
+									label: item.name,
+									value: item.id
+								}
+							}));
+						}
+					})
+					},
+					select: function(event, ui) {
+						var title = ui.item.label.split(' > ');
+						title = title[title.length - 1];
+						$('#subject_search').attr('value', title);
+						$('#subject_list').val(ui.item.value);
+						$('#subject_list, #subject_search + a').show();
+						$('#subject_search').hide();
+					
+						return false;
+					},
+					focus: function(event, ui) {
+						//$('#subject_list, #subject_search + a').show();
+						//$('#subject_search').hide();
+						return false;
+				    }
+				});	
+					
+				$('#subject_search').bind('keypress', function(e) {
+					if(e.keyCode == 27 || e.keyCode == 13) {		
+						$('#subject_list, #subject_search + a').show();
+						$('#subject_search').hide();
+					}
+						
+					if(e.keyCode == 13) { 
+						e.preventDefault();
+						return false;
+					}
+				});
+			}
+		});
+	</script>
+END;
+		}
+		break;
+
+		case 'ajax_files_moderation': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			ajaxFilesModeration = function(moduleId) {
+				$('.files_moderation .moderation_control a').button().click(function() {
+					var item = $(this).parent().parent();
+					$(this).parent().parent().find('.moderation_status_form').clone().dialog({
+						title: 'Модерация файла',
+						autoOpen: true,
+						height: 600,
+						width: 700,
+						modal: true,
+						buttons: {
+							'Готово': function(event, ui) {
+								var form = $(this).find('form');
+								var file_attach_id = form.find('input[name="file_attach_id"]').val(),
+									file_access = form.find('input[name="file_access"]:checked').val(),
+									file_attach_comment = form.find('textarea[name="file_attach_comment"]').val().replace(new RegExp('\\n','g'), '<br />');
+								var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_files_moderation', 'data': {'file_attach_id': file_attach_id, 'file_access': file_access, 'file_attach_comment': file_attach_comment} };
+								jQuery.ajax({
+									type: 'POST',
+									url: '/ajax_mode/', 
+									data: request,
+									dataType: "xml",
+									success: function(data, textStatus, XMLHttpRequest) {
+										if($(data).find('attach_status').text() == "completed") {
+											if(file_access > 0) {
+												item.removeClass().addClass('access');
+												item.find('.attach_comment').html('');
+												//item.remove();
+											} else {
+												item.removeClass().addClass('no_access');
+												//item.parents(".file_list_row").remove();
+											}
+											if($.trim(file_attach_comment).length && file_access < 0) {
+												item.find('.attach_comment').html($('<blockquote/>').html(file_attach_comment));
+											}
+										} else {
+											alert("Не удалось обновить данные");
+										};
+									}
+								});
+								$(this).dialog('close').remove();
+							},
+							'Отмена': function(event, ui) {
+								$(this).dialog('close').remove();
+							}
+						},
+						close: function(event, ui) { $(this).dialog( 'destroy' ); }
+					});
+				});
+        
+            
+            $('.attach_file_list > ul.file_attaches .delet_attach').live('click', function(){
+                if(window.confirm('Вы уверены, что хотите удалить привязку'/*+$(this).parents('.file_list_row').find('.file_name').html()*/+'?')) {
+                  var a_id = $(this).attr('href').split('?');
+                  a_id = a_id[1].split('=');
+                  a_id = parseInt(a_id[1]);
+                  
+                  var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_del_attach', 'data': {'a_id': a_id} };
+                  $.ajax({
+                    type: 'POST',
+                    url: '/ajax_mode/', 
+                    data: request,
+                    success: function(data) {
+                      if(!(!data || !data.documentElement)) {
+                        var rootNodeName = data.documentElement.nodeName;
+                        if(rootNodeName != 'parsererror') {
+                          xmlDocElem = data.documentElement;
+                          if(rootNodeName == 'del_status') {
+                            var process = xmlDocElem.firstChild.data;
+                            if(process == 1) {
+                              $('#file-attach-'+a_id).remove();
+                              $('.attach_file_list:visible').each(function(i){
+                                if($(this).find('li.attach_row').length) {
+                                  $(this).removeClass('hidden');
+                                } 
+                                else {
+                                  $(this).addClass('hidden');
+                                  //$('#show_attach_file_'+file_id).remove();
+                                }
+                              });
+                            }
+                          }
+                        }
+                      }
+                    }}); 
+                }
+                return false; 
+            }); 
+            
+            $('.editable-select').editableSelect({
+                bg_iframe: true,
+                onSelect: function(list_item) {
+                  this.select.get(0).options[list_item.index()].selected = 'selected';
+                }
+            }).parents('form').submit(function(){
+              $(this).find('select.editable-select').removeAttr('disabled');
+            });
+			};
+		});
+		jQuery(document).ready(function($) {
+			FileAttach = function(moduleId) {
+				$('#file_and_subj_LK .sel_subject_list dt label').click(function() {
+					if($(this).find('input').is(':checked')) {
+						$(this).parent().addClass('checked').next('dd').addClass('checked');
+					} else {
+						$(this).parent().removeClass('checked').next('dd').removeClass('checked');
+					}				
+				});
+				$('#file_and_subj_LK .sel_subject_list dd .education').change(function() {
+					/*if($(this).val() == 'Заочная') {
+						$(this).parent().find('.semester').removeClass('hidden');
+					} else {
+						$(this).parent().find('.semester').addClass('hidden');
+					};*/
+				});
+			};
+			ajaxSearchSubj = function(moduleId) {
+				var field = $('#subject_list').find('option');
+ 
+				// собственно поиск
+				/*$('#subject_search').live('keyup', function() {
+				    if($(this).val().length < 4 && $(this).val().length != 0) return ;
+					var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_search_subj', 'data': {'q': $(this).val()} };
+					$.ajax({
+						type: 'POST',
+						url: '/ajax_mode/', 
+						data: request,
+						success: function(data) {
+							$('#subject_list').replaceWith(data);//$('#subject_search').parent().parent().next('dd').html(data); 
+						}
+					}); 
+				});*/
+				/*$('#subject_search').autocomplete({
+					delay: 500,
+					source: function(request, response) {
+						var request = {'module': moduleId, 'mode': 'json', 'params': 'ajax_autocomplete_subj', 'data': {'q': request.term} };
+						$.ajax({
+						'url': '/ajax_mode/',
+						dataType: 'json',
+						data: request, 
+						success: function(json) {
+								response($.map(json, function(item) {
+								return {
+									label: item.name,
+									value: item.id
+								}
+							}));
+						}
+					})
+					},
+					select: function(event, ui) {
+						var title = ui.item.label.split(' > ');
+						title = title[title.length - 1];
+						$('#subject_search').attr('value', title);
+						$('#subject_list').val(ui.item.value);
+						$('#subject_list, #subject_search + a').show();
+						$('#subject_search').hide();
+					
+						return false;
+					},
+					focus: function(event, ui) {
+				      //$('#subject_search').attr('value', title);
+						//$('#subject_list').val(ui.item.value);
+						//$('#subject_list, #subject_search + a').show();
+						//$('#subject_search').hide();
+						return false;
+				    }
+				});	
+					
+				$('#subject_search').bind('keypress', function(e) {
+					if(e.keyCode == 27 || e.keyCode == 13) {		
+						$('#subject_list, #subject_search + a').show();
+						$('#subject_search').hide();
+					}
+						
+					if(e.keyCode == 13) { 
+						e.preventDefault();
+						return false;
+					}
+				});*/
+				$('.subject_search').autocomplete({
+					delay: 500,
+					source: function(request, response) {
+						var request = {'module': moduleId, 'mode': 'json', 'params': 'ajax_autocomplete_subj', 'data': {'q': request.term} };
+						$.ajax({
+						'url': '/ajax_mode/',
+						dataType: 'json',
+						data: request, 
+						success: function(json) {
+								response($.map(json, function(item) {
+								return {
+									label: item.name,
+									value: item.id
+								}
+							}));
+						}
+					})
+					},
+					select: function(event, ui) {
+						var title = ui.item.label.split(' > ');
+						title = title[title.length - 1];
+						$(this).parent().find('.subject_search').attr('value', title);
+						$(this).parent().find('.subject_list').val(ui.item.value);
+						$(this).parent().find('.subject_list, .subject_search + a').show();
+						$(this).parent().find('.subject_search').hide();
+					
+						return false;
+					},
+					focus: function(event, ui) {
+						//$(this).parent().find('.subject_list').val(ui.item.value);
+						//$(this).parent().find('.subject_list, .subject_search + a').show();
+						//$(this).parent().find('.subject_search').hide();
+        		
+		        		return false;
+				    }
+				});	
+					
+				$('.subject_search').bind('keypress', function(e) {
+					if(e.keyCode == 27 || e.keyCode == 13) {		
+						$(this).parent().find('.subject_list, .subject_search + a').show();
+						$(this).parent().find('.subject_search').hide();
+					}
+						
+					if(e.keyCode == 13) { 
+						e.preventDefault();
+						return false;
+					}
+				});
+			}
+		});
+	</script>
+END;
+		}
+		break;
+
+		case 'els': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			Els = function(module_id,feedback_module_id) {
+				var pager = null;
+				var show_publisher = Boolean(document.getElementById('show_publisher').value);
+				if($("#pager_cont").length) {
+					pager = $("#pager_cont").createPager({
+						'onResponse': function (data) {
+							data = $.parseJSON(data);
+							var resDiv = $('#found_items');
+							var resHTML = '';
+							for (ind in data['search_res']) {
+								resHTML += '<hr /><div class="found-item">'+( (show_publisher && data['search_res'][ind]['pid']) ? '<div style="float:right;"><a target="_blank" href="/people/'+data['search_res'][ind]['pid']+'">'+data['search_res'][ind]['pname']+'</a></div><br />' : '')+(data['search_res'][ind]['place'] || data['search_res'][ind]['year'] || data['search_res'][ind]['author'] || data['search_res'][ind]['view']? (data['search_res'][ind]['author'] ? 'Автор: '+data['search_res'][ind]['author']+'&nbsp;&nbsp;':'')+( (data['search_res'][ind]['place'] || data['search_res'][ind]['year'] )?(data['search_res'][ind]['year'] ? data['search_res'][ind]['year']+' г. ' : '')+(data['search_res'][ind]['place'] ? data['search_res'][ind]['place'] : ''):'')+'<br />' : '')+(data['search_res'][ind]['view'] ? 'Вид ресурса: '+data['search_res'][ind]['view']+'<br />': '')+(data['search_res'][ind]['subj']==null ? '' : 'Дисциплина: '+data['search_res'][ind]['subj']+'<br />')+'<a href="/file/'+data['search_res'][ind]['id']+'/">'+(data['search_res'][ind]['descr']?data['search_res'][ind]['descr']:data['search_res'][ind]['name'])+'</a></div>';
+							};
+							resDiv.html(resHTML);
+							document.location.hash = (document.location.hash.indexOf('&p=') == -1) ?  document.location.hash + '&p='+pager.curPageNum : document.location.hash.replace(/&p=\d+/, '&p='+pager.curPageNum);
+							this.hashChangeCall = true;
+						}
+					});
+				};
+				
+				var directHashChange = false;
+				doAjaxSearch = function(form, sort_field, sort_dir, page, direct_call) {
+					if (typeof(direct_call) == 'undefined') direct_call = true;
+					if (typeof(page) == 'undefined' || page < 1) page = 1;
+					if (typeof(sort_field) == 'undefined') sort_field = '';
+					if (typeof(sort_dir) == 'undefined') sort_dir = '';
+					
+					var spec = $(form['file_spec']).val();
+					var subj = $(form['file_subj']).val();
+					var subj = $(form['file_subj']).val();
+					var umkd = $(form['file_umkd']).val();
+					var year = $(form['file_year']).val();
+					var type = $(form['file_type']).val();
+					var education = $(form['file_education']).val();
+					var title = form['file_title'].value;
+					var author = form['file_author'].value;
+					
+					if (title == 'название') title = ''; 					// bambarbiya
+					if (author == 'автор') author = '';
+					var request = {
+						'module': feedback_module_id,  
+						'params': 'els', 
+						'data': {'file_spec': spec, 'file_subj': subj, 'file_umkd': umkd, 'file_title': title, 'file_author': author, 'file_year' : year, 'file_type' : type, 'file_education': education, 'sort_field': sort_field, 'sort_dir': sort_dir, 'page': page} 
+					};
+					$.ajax({
+						type: 'POST',
+						url: '/ajax_mode/', 
+						data: request,
+						datatype: 'json',
+						error : function(jqXHR, data, error) {
+							
+						},
+						success: function(data) {
+							if (direct_call) {
+								pager.hashChangeCall = true;
+								document.location.hash = 's='+spec+'&su='+subj+'&u='+umkd+'&t='+title+'&a='+author+'&o='+sort_field+'&d='+sort_dir+'&e='+education+'&p='+page+'&st='+type;
+							};
+							data = $.parseJSON(data);
+							
+							resDiv = $('#search_res');
+							if (!data['search_res'].length) {
+								resDiv.html('<h2>Поиск по заданным параметрам не дал результатов.</h2>');
+							} else {
+								resHTML = '<h2>Результаты поиска: <br></h2><div id="found_count">найдено файлов: '+data['pager_output']['items_num']+'<div style="display:inline;margin-left:30px"> сортировать по <a href="#" id="date_sort" onclick="return false">'+(sort_field == 'year' ? '<strong>дате</strong>' : 'дате')+'</a>, <a href="#" id="title_sort" onclick="return false">'+(sort_field == 'descr' ? '<strong>названию</strong>' : 'названию')+'</a></div></div><div id="found_items">';
+								for (ind in data['search_res']) {
+									resHTML += '<hr /><div class="found-item">'+( (show_publisher && data['search_res'][ind]['pid']) ? '<div style="float:right;"><a target="_blank" href="/people/'+data['search_res'][ind]['pid']+'">'+data['search_res'][ind]['pname']+'</a></div><br />' : '')+(data['search_res'][ind]['place'] || data['search_res'][ind]['year'] || data['search_res'][ind]['author'] || data['search_res'][ind]['view']? (data['search_res'][ind]['author'] ? 'Автор: '+data['search_res'][ind]['author']+'&nbsp;&nbsp;':'')+( (data['search_res'][ind]['place'] || data['search_res'][ind]['year'] )?(data['search_res'][ind]['year'] ? data['search_res'][ind]['year']+' г. ' : '')+(data['search_res'][ind]['place'] ? data['search_res'][ind]['place'] : ''):'')+'<br />' : '')+(data['search_res'][ind]['view'] ? 'Вид ресурса: '+data['search_res'][ind]['view']+'<br />': '')+(data['search_res'][ind]['subj']==null ? '' : 'Дисциплина: '+data['search_res'][ind]['subj']+'<br />')+'<a href="/file/'+data['search_res'][ind]['id']+'/">'+(data['search_res'][ind]['descr']?data['search_res'][ind]['descr']:data['search_res'][ind]['name'])+'</a></div>';
+								};
+								resHTML += '</div>';
+								resDiv.html(resHTML);
+							};
+
+							$('#pager_cont').html(pager.draw(data['pager_output']));
+							request.params = 'els_spec_list';request.mode = "html_code";
+							$.ajax({
+								type: 'POST',
+								url: '/ajax_mode/', 
+								data: request,
+								datatype: 'html',
+								success: function(data) {
+									$(form['file_spec']).replaceWith(data);
+								}
+							});
+						}
+					});
+					return false;
+				};
+				
+				var date_sort_dir = "asc";
+				var title_sort_dir = "desc";
+				$('#date_sort').live('click', function () { 
+					if (date_sort_dir == "asc") {
+						date_sort_dir = "desc";
+					} else {
+						date_sort_dir = "asc";
+					};
+					return doAjaxSearch($('#file_search').get(0), 'year', date_sort_dir, pager.curPageNum ? pager.curPageNum : 1, true);
+				});
+				$('#title_sort').live('click', function () {
+					if (title_sort_dir == "asc") {
+						title_sort_dir = "desc";
+					} else {
+						title_sort_dir = "asc"; 
+					};
+					return doAjaxSearch($('#file_search').get(0), 'descr', title_sort_dir, pager.curPageNum ? pager.curPageNum : 1, true);
+				});
+				$('#submit_search').bind('click', function () { return doAjaxSearch($('#file_search').get(0));});
+				$('#file_search input').bind('keypress', function(e) {if (e.keyCode == 13) doAjaxSearch($('#file_search').get(0));});
+					
+				$(window).bind('hashchange load', function() {
+					if (pager.hashChangeCall) {
+						pager.hashChangeCall = false;
+						return;
+					};
+					var form = $('#file_search').get(0);
+			    	if (document.location.hash) {
+				    	form = $('#file_search').get(0);
+				    	hashParts = document.location.hash.substr(1).split('&');
+				    	var fieldAbbrs = {'s': 'file_spec', 'su': 'file_subj','u': 'file_umkd', 't': 'file_title', 'a': 'file_author', 'o': 'sort_field', 'd': 'sort_dir', 'e': 'file_education', 'st': 'file_type', 'p': 'page'};
+				    	var sortField = '';
+				    	var sortDir = '';
+				    	var page = 1;
+				    	for (var ind in hashParts) {
+							paramInfo = hashParts[ind].split('=');
+					    	if (!form[fieldAbbrs[paramInfo[0]]]) {
+						    	if (paramInfo[0] == 'o') 
+							   		sortField = paramInfo[1];
+						    	else if (paramInfo[0] == 'd')
+							   		sortDir = paramInfo[1];
+						    	else
+							   		page = paramInfo[1];
+						    } else if (form[fieldAbbrs[paramInfo[0]]].tagName == 'INPUT')
+					    		form[fieldAbbrs[paramInfo[0]]].value = paramInfo[1];
+					    	else if (form[fieldAbbrs[paramInfo[0]]].tagName == 'SELECT')
+					    		$(form[fieldAbbrs[paramInfo[0]]]).val(paramInfo[1]);
+				    	};
+				    	doAjaxSearch(form, sortField, sortDir, page, false);
+				    } else {
+				    	form.reset();
+				    	$('#search_res').text('');
+			    	};
+				});
+			};
+		});
+	</script>
+END;
+		}
+		break;
+		case "stats": {
+			$EE["head_extra3"][] = <<<END
+			<script type="text/javascript">
+				jQuery(document).ready(function($) {
+					Stats = function(moduleId) {
+						var request = {
+							'module': moduleId,  
+							'params': 'stats',
+							'mode': 'json',
+							data: {'ajax': 1} 
+						};
+					$.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							dataType: 'json',
+							beforeSend: function(jqxhr, settings) {
+								$('#stat_downloads, #stat_approved').show();
+								$('#stat_downloads span, #stat_approved span').html('<img src="/themes/images/loading_news.gif" width="16" />');
+							},
+							success: function(data) {
+								$('#stat_downloads, #stat_approved').show();
+								$('#stat_downloads span').html(data.downloads);
+								$('#stat_approved span').html(data.approved);
+							}
+						});
+					}
+				});
+			</script>
+END;
+		}
+	}
+}
+			
+	$head_Extra = "
+	<script type='text/javascript' src='".HTTP_COMMON_SCRIPTS."jquery/jquery.form.js'></script>
+	<script type='text/javascript'>
+		
+		function trace_upload_progress(upfile_id, progress_bar) {
+			if (upfile_id) {
+				var time = new Date().getTime();
+	 	        var request = {'module': " .$MODULE_OUTPUT['module_id']. ", 'mode': 'html_code', 'params': 'get_upload_progress', 'data': {'upfile_id': upfile_id, 'time': time}, '".ini_get("session.upload_progress.name")."': upfile_id };
+				jQuery.ajax({
+					type: 'POST',
+					url: '/ajax_mode/', 
+					data: request,
+					success: function(data) {
+						if(!(!data || !data.documentElement)) {
+							var rootNodeName = data.documentElement.nodeName;
+							if(rootNodeName != 'parsererror') {
+								xmlDocElem = data.documentElement;
+								if(rootNodeName == 'upload_progress') {
+									var process = xmlDocElem.getElementsByTagName('process').item(0).firstChild.data;
+									var process_time = xmlDocElem.getElementsByTagName('time').item(0).firstChild.data;
+									if(upload_started) {
+										progress_bar.html(process+'%');
+									} else {
+										upload_started = false;
+										progress_bar.html('Файл загружен.');
+									}
+								}
+							}
+						}
+						if(upload_started) {
+							setTimeout(function() {
+								trace_upload_progress(upfile_id, progress_bar);
+							}, 1);
+						}						
+					
+						/*if (resp) {   
+							jQuery('.progress-bar').html(jQuery('.progress-bar').html()+resp+'-');
+							progress = parseInt(resp, 10);
+							if (progress != -1) {
+							    if (progress < 100 || !upload_started) {
+							    	if (progress<100) {
+										//jQuery('.progress-bar').html(jQuery('.progress-bar').html()+'1-');
+										//alert('Ok');//progress_bar.attr('innerHTML', ' <span>Загружено '+progress+'%...</span>');
+									}
+							    	upload_started = progress > 0;
+							    	setTimeout(function() {
+										trace_upload_progress(upfile_id, progress_bar);
+									}, 1);
+							    } else {
+									if(upload_started) {
+										//jQuery('.progress-bar').html(jQuery('.progress-bar').html()+'1-');
+										//alert('.|.');//progress_bar.attr('innerHTML', ' <span>Файл загружен.</span>');
+									}
+								}
+							}
+						}*/			
+					}
+				});
+			}
+		}
+		
+		function validate_size(form) { 
+			file = form.find('#upload_file');
+			if(file.val().length == 0) {
+				alert('Файл не выбран');
+				return false;
+			}
+			var size = 0;
+			if(jQuery.trim(form.find('#upload_descr').val()) == '') {
+				alert('Укажите полное название файла.');
+				return false;
+			}
+			try {
+				if (jQuery.browser.msie) {
+						var myFSO = new ActiveXObject('Scripting.FileSystemObject');
+						var filepath = file.val();
+						var thefile = myFSO.getFile(filepath);
+						size = thefile.size;   		
+				} else {
+					if (file[0].files[0].size) {
+						size = file[0].files[0].size;
+					}
+				}
+			} catch(e) {}	 
+	   		if(size > ".$MODULE_OUTPUT['upload_max_filesize'].") {
+				alert('Размер вашего файла превышает максимально допустимый (".$MODULE_OUTPUT['maxsize']."Б)');
+	   			file.parentNode.innerHTML = file.parentNode.innerHTML;
+	   			return false;
+	    	}
+			var file_type = file.val().split('.');
+			file_type = file_type[file_type.length - 1];";
+if(!isset($MODULE_OUTPUT['msoffice_upload']) || !$MODULE_OUTPUT['msoffice_upload']) {
+	$head_Extra .= "if(file_type == 'doc' || file_type == 'docx') {
+				alert('В соответсвии с регламентом на портале не размещаются форматы файлов Microsoft Office.\\nЭти данные необходимо конвертировать в формат pdf. \\nЗа помощью обратитесь к системному администратору вашего подразделения.');
+				return false;
+			}";
+}
+$head_Extra .= "return true;
+		}
+    
+		var upload_started = false;
+		jQuery(document).ready(function($) {
+			if (document.getElementById('files_info_cont')) {
+				jQuery(document).bind('click', function () {document.getElementById('files_info_cont').style.display = 'none';});
+			}
+			jQuery('#file_list_LK .file_item_info .pointer').live('click', function() {
+				jQuery(this).parents('.file_list_row').find('.edit_file_form').toggleClass('hidden');
+				return false;
+			});
+			jQuery('#file_list_LK .edit_file_form input[type=button]').live('click', function() {
+				jQuery(this).parents('.edit_file_form').addClass('hidden');
+			});
+			jQuery('#file_list_LK .file_item_info .show_attach_file').click(function() {
+				jQuery(this).parents('.file_list_row').find('.attach_file_list').toggleClass('hidden');
+				return false;
+			});
+			jQuery('#file_and_subj_LK .sel_subject_list dt label').click(function() {
+				if(jQuery(this).find('input').is(':checked')) {
+					jQuery(this).parent().addClass('checked').next('dd').addClass('checked');
+				} else {
+					jQuery(this).parent().removeClass('checked').next('dd').removeClass('checked');
+				}				
+			});
+			
+			function update_file_select() {
+				if(jQuery('#privyazka').length) {
+					jQuery('#privyazka select[name=\'sel_file\']').attr({'disabled':'disabled'});
+					var request = {'module': " .$MODULE_OUTPUT['module_id']. ", 'mode': 'html_code', 'params': 'ajax_update_file_select'};
+					jQuery.ajax({
+						type: 'POST',
+						url: '/ajax_mode/', 
+						data: request,
+						success: function(data) {
+							jQuery('#privyazka select[name=\"sel_file\"]').replaceWith(data);
+						}
+					});
+				}
+			}
+			if(jQuery('#file_list_LK').length) {
+				jQuery('#file_list_LK .file_list_row .delet_file').live('click', function() {
+					if(window.confirm('Вы уверены, что хотите удалить файл '+jQuery(this).parents('.file_list_row').find('.file_name').html()+'?')) {
+						var f_id = jQuery(this).attr('href').split('?');
+						f_id = f_id[1].split('=');
+						f_id = parseInt(f_id[1]);
+						var request = {'module': " .$MODULE_OUTPUT['module_id']. ", 'mode': 'html_code', 'params': 'ajax_del_file', 'data': {'f_id': f_id} };
+						jQuery.ajax({
+							type: 'POST',
+							url: '/ajax_mode/', 
+							data: request,
+							success: function(data) {
+								if(!(!data || !data.documentElement)) {
+									var rootNodeName = data.documentElement.nodeName;
+									if(rootNodeName != 'parsererror') {
+										xmlDocElem = data.documentElement;
+										if(rootNodeName == 'del_status') {
+											var process = xmlDocElem.firstChild.data;
+											if(process == 1) {
+												jQuery('#file_row_'+f_id).remove();
+												update_file_select();
+												if(jQuery('#file_list_LK .file_list_cont .file_list_row').length) {
+													jQuery('#file_and_subj_LK').removeClass('hidden');
+												} else {
+													jQuery('#file_list_LK .file_list_cont').html('Файлы отсутствуют');
+													jQuery('#file_and_subj_LK').addClass('hidden');
+												};
+											}
+										}
+									}
+								}	
+							}
+						});
+					}
+					return false;
+				});
+				
+				if(jQuery('#add_file_LK #fileform #upload_file').length) {
+					jQuery('#add_file_LK #fileform #upload_file').change(function() {
+						var file_type = jQuery(this).val().split('.');
+						file_type = file_type[file_type.length - 1];";
+if(!isset($MODULE_OUTPUT['msoffice_upload']) || !$MODULE_OUTPUT['msoffice_upload']) {
+	$head_Extra .= 		"if(file_type == 'doc' || file_type == 'docx') {
+							alert('В соответсвии с регламентом на портале не размещаются форматы файлов Microsoft Office.\\nЭти данные необходимо конвертировать в формат pdf. \\nЗа помощью обратитесь к системному администратору вашего подразделения.');
+							jQuery(this).val('');
+						}";
+}
+$head_Extra .= 		"});
+				}
+				
+				var request = {'module': " .$MODULE_OUTPUT['module_id']. ", 'mode': 'html_code', 'params': 'ajax_add_file'};
+				jQuery('#add_file_LK #fileform').ajaxForm({
+					dataType : 'html',
+					type: 'POST',
+					data: request,
+					url: '/ajax_mode/',
+					resetForm: true,
+					beforeSubmit: function(a,f,o) {
+						if(validate_size(jQuery(f))) {
+							setTimeout(function() {
+								upload_started = true;
+								trace_upload_progress(jQuery(f).find('.upfile_token').val(), jQuery('#add_file_LK .progress-bar'));
+							}, 1);
+							jQuery('#add_file_LK .progress-bar').html('Загрузка...');
+						} else {
+							return false;
+						}					
+					},
+					onprogress: function(position,total) {
+						jQuery('#add_file_LK .progress-bar1').html(position);
+					},
+					success: function(data,statusText) {
+						update_file_select();
+						upload_started = false;
+						jQuery('#add_file_LK .progress-bar').html('Файл загружен.');
+						setTimeout(function() {jQuery('#add_file_LK .progress-bar').html('');}, 2000);
+						if(jQuery('#file_list_LK .file_list_cont .file_list_row').length) {
+							jQuery('#file_list_LK .file_list_cont').append(data);
+							jQuery('#file_and_subj_LK').removeClass('hidden');
+						} else {
+							jQuery('#file_list_LK .file_list_cont').html(data);
+							jQuery('#file_and_subj_LK').removeClass('hidden');
+						};
+					}
+				});
+			}
+		});
+	
+		</script>
+";
+//$EE["head_extra3"][] = $head_Extra;
+
+
+?>

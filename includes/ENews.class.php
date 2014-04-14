@@ -1,8 +1,8 @@
 <?php
 
 class ENews
-// version: 2.8.14
-// date: 2013-06-07
+// version: 2.8.16
+// date: 2014-04-10
 {
 	var $output;
 	var $module_id;
@@ -133,6 +133,8 @@ class ENews
 		else {
 			die("ENews module error #1010 at node $this->node_id: cat ID not specified.");
 		}
+		
+		$this->output["title_max_chars"] = $this->title_max_chars;
 		
 		//if ($this->manage_access)
 		//var_dump ($Engine->ModuleOperationAllowed("cat.items.handle", $this->current_cat_id));
@@ -291,8 +293,15 @@ class ENews
 				}
 				
 				if (isset($_POST[$this->node_id]["subscribe"]["email"])) {
-					$confirm = md5(rand(0, 99999999).time());						
-						
+					$confirm = md5(rand(0, 99999999).time()); 
+          
+          $this->display_variant = "subscribe"; 
+          
+          if(!CF::ValidateEmail($_POST[$this->node_id]["subscribe"]["email"])) {
+            $status = false; 
+            $this->output["messages"]["bad"][] = 312;
+          } 						
+					else {	
 					if ($array["subscribes_settings"]["need_confirmation"]) {
 						$is_confirmed = 0;
 						
@@ -332,6 +341,7 @@ class ENews
 					else {
 						$this->output["messages"]["good"][] = "Вам выслан код подтверждения";
 					}
+          }
 				}
         //$this->ClearSubscribers(); 
 			}
@@ -753,7 +763,8 @@ class ENews
 							if ( $this->title_max_chars != 0 && strlen($POST_DATA["title"]) > $this->title_max_chars)
 							{
 								$this->status = false;
-								$this->output["messages"]["bad"][] = 913; // не указана заголовок!)
+								$this->output["title_max_chars"] = $this->title_max_chars;
+								$this->output["messages"]["bad"][] = 913; // длина заголовка превышает допустимую !)
 							}
 
 							if (CF::IsNonEmptyStr($POST_DATA["uripart"]) && (preg_match("/^\d+$/", $POST_DATA["uripart"]) || !preg_match("/^[a-z0-9_-]+$/i", $POST_DATA["uripart"]))) {
@@ -1003,6 +1014,7 @@ class ENews
 							if ( $this->title_max_chars != 0 && strlen($POST_DATA["title"]) > $this->title_max_chars)
 							{
 								$this->status = false;
+								$this->output["title_max_chars"] = $this->title_max_chars;
 								$this->output["messages"]["bad"][] = 913; // не указана заголовок!)
 							}
 

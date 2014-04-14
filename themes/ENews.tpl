@@ -1,6 +1,6 @@
 <?php
-// version: 2.8.10
-// date: 2012-11-01
+// version: 2.8.11
+// date: 2014-03-06
 $MODULE_MESSAGES = array(
 	101 => "Материал успешно добавлен",
 	102 => "Материал успешно обновлён",
@@ -49,7 +49,7 @@ $MODULE_MESSAGES = array(
 	910 => "Ошибка создания файла изображения. Обратитесь к&nbsp;администратору",
 	911 => "Ошибка копирования файла не-изображения. Обратитесь к&nbsp;администратору",
 	912 => "Поле &laquo;Заголовок&raquo; должно содержать не менее 3-х символов",
-	913 => "Поле &laquo;Заголовок&raquo; слишком длинное",
+  913 => array("Длина поля &laquo;Заголовок&raquo; превышает %s символов", $MODULE_OUTPUT["title_max_chars"]),
 //	1001 => "Не&nbsp;указана группа новостей",
 //	1002 => "Не&nbsp;указана папка новостей в&nbsp;режиме анонса",
 //	1003 => "Не&nbsp;указано число выводимых новостей в&nbsp;режиме анонса",
@@ -67,7 +67,7 @@ if ($MODULE_OUTPUT["messages"]["good"])
 	{
 		if (isset($MODULE_MESSAGES[$elem]))
 		{
-			$array[] = $MODULE_MESSAGES[$elem];
+			$array[] = is_array($MODULE_MESSAGES[$elem]) ? sprintf($MODULE_MESSAGES[$elem][0], $MODULE_MESSAGES[$elem][1]) : $MODULE_MESSAGES[$elem];
 		}
 	}
 
@@ -88,7 +88,7 @@ if ($MODULE_OUTPUT["messages"]["bad"] && isset($MODULE_OUTPUT["display_variant"]
 	{
 		if (isset($MODULE_MESSAGES[$elem]))
 		{
-			$array[] = $MODULE_MESSAGES[$elem];
+			$array[] = is_array($MODULE_MESSAGES[$elem]) ? sprintf($MODULE_MESSAGES[$elem][0], $MODULE_MESSAGES[$elem][1]) : $MODULE_MESSAGES[$elem];
 		}
 	}
 

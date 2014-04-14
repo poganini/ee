@@ -1,0 +1,87 @@
+<?php
+// version: 1.0.1
+// date: 2014-03-11
+global $Engine, $Auth, $EE;
+
+if(isset($MODULE_OUTPUT['scripts_mode'])) {
+	switch($MODULE_OUTPUT['scripts_mode']) {
+		case 'apply': {
+    $timepars = array("09:00 - 10:20","10:30 - 11:50","12:30 - 13:50","14:00 - 15:20","15:30 - 16:50","17:00 - 18:20","18:30 - 19:50");
+    $timepars = json_encode($timepars);
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+  var timepars = $timepars; 
+		jQuery(document).ready(function($) { 
+			InputCalendar = function() {
+				$('input.date_time').datepicker({
+					closeText: 'Закрыть', // Display text for close link
+					prevText: 'Предыдущий', // Display text for previous month link
+					nextText: 'Следующий', // Display text for next month link
+					currentText: 'Сегодня', // Display text for current month link
+					monthNames: ['Январь','Февраль','Март','Апрель','Май','Июнь', 'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'], // Names of months for drop-down and formatting
+					monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июнь', 'Июль', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'], // For formatting
+					dayNames: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'], // For formatting
+					dayNamesShort: ['Вос', 'Пон', 'Втор', 'Сре', 'Чет', 'Пят', 'Суб'], // For formatting
+					dayNamesMin: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'], // Column headings for days starting at Sunday
+					weekHeader: 'Wk', // Column header for week of the year
+					dateFormat: 'yy-mm-dd', // See format options on parseDate);
+					//timeFormat: 'hh:mm:ss',
+					//ampm: false,
+					//hourMin: 8,
+					//hourMax: 18,
+					//timeOnlyTitle: 'Выберите время',
+					//timeText: 'Время',
+					//hourText: 'Часы',
+					//minuteText: 'Минуты',
+					//secondText: 'Секунды',
+					//init_this_time: true,
+					firstDay: 1,
+				});
+        $('#apply').bind('click', function(){
+          var date = $('#apply_date').val();//alert(date); 
+          var num = $('#apply_num').val();
+          var timepar = timepars[num - 1];
+          var start_time = timepar.split(' - ');
+          start_time = start_time[0];
+          var dd = /(\d{4})-(\d{2})-(\d{2})/.exec(date);
+          if(!dd){
+            alert('Неверный формат даты');
+            return false;
+          }
+          
+          var d = new Date(); 
+          var d1 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+          var d2 = new Date(dd[1], dd[2], dd[3]);
+          var d2 = new Date(date.replace(/(\d+)-(\d+)-(\d+)/, '$2/$3/$1'));
+          //console.log(d1);console.log(d2);  
+          if(d1.getTime() > d2.getTime()){
+            alert("Выберите дату в будущем");
+            return false;
+          }
+          //return false;
+        });
+        $('.del_app').bind('click', function(e){
+          var app_id = $(this).attr('href');
+					app_id = app_id.split('/');
+          if(app_id[0] == 'del_app'){
+            app_id = app_id[1];
+            var request = {'module': {$MODULE_OUTPUT['module_id']}, 'mode': 'html_code', 'params': 'ajax_delete_app', 'app_data': {'id': app_id} };
+              $.ajax({
+                type: 'POST',
+                url: '/ajax_mode/', 
+                data: request,
+                success: function( data ) {
+                  $('#app_row_'+app_id).remove(); 		
+              }
+            });
+          }
+          return false;
+        })
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	}
+}

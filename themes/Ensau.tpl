@@ -1,6 +1,6 @@
 <?php
-// version: 3.14
-// date: 2013-11-25
+// version: 3.21
+// date: 2014-04-01
 //$MODULE_OUTPUT = $MODULE_DATA["output"];
 
 $MODULE_MESSAGES = array(
@@ -409,7 +409,7 @@ switch($MODULE_OUTPUT["mode"])
 								$dir["higher"] = "ВПО";
 								$dir["magistracy"] = "Магистратура";
 								$dir["bachelor"] = "Бакалавриат";
-								if ($type_sp["has_vacancies"]) { ?>
+								/*if ($type_sp["has_vacancies"]) */{ ?>
 		<fieldset>
 			<legend><?=$dir[$type_sp["type"]]?><? if ($type_sp["qualification"] || $type_sp["data_training"]) { ?> - <? } ?><? if ($type_sp["qualification"]) { ?>уровень обучения <?=$type_sp["qualification"]?>, <? } ?><? if ($type_sp["data_training"]) { ?>срок обучения <?=$type_sp["data_training"]?><? } ?></legend>
 <?php 								if (!empty($type_sp["description"])) { ?>
@@ -419,9 +419,7 @@ switch($MODULE_OUTPUT["mode"])
 									if(isset($type_sp["exams"]) && count($type_sp["exams"])) { ?>
 			<p><strong> Вступительные испытания</strong>:
 <?php									if ($type_sp["type"] != "magistracy") {
-											foreach($type_sp["exams"] as $key => $exam) { ?>
-				<?=(!$key ? $exam["name"] : ", ".$exam["name"])?>
-<?php										}
+											foreach($type_sp["exams"] as $key => $exam) { ?><?=(!$key ? $exam["name"] : ", ".$exam["name"])?><?php										}
 										} else { ?>
 				Собеседование по профилю выбранного направления подготовки
 <?php									} ?>
@@ -448,8 +446,8 @@ switch($MODULE_OUTPUT["mode"])
 					} ?>
 		<br /><br />
 <?php			}
-                if ($MODULE_OUTPUT["privileges"]["specialities.handle"]==true && 0) { ?>
-		<a href="/speciality/<?=$special["code"]?>/?node=<?=$NODE_ID?>&amp;action=edit#form">[ Редактировать текст ]</a>
+                if ($MODULE_OUTPUT["privileges"]["specialities.handle"]==true /*&& 0*/) { ?>
+		<a href="/office/speciality_directory/edit_speciality/<?=$special["id_edit"]?>/">[ Редактировать описание ]</a>
 <?php  			}
             } ?>
 		<br />
@@ -484,6 +482,117 @@ switch($MODULE_OUTPUT["mode"])
         }
 	}
     break;
+    
+    case "library_standard": {
+		/*echo "<pre>";
+		print_r($MODULE_OUTPUT["specialities"]);
+		echo "</pre>";*/
+        /*if($MODULE_OUTPUT["type"]=="higher") { ?>
+		<h2 style="text-align: center;">Перечень специальностей высшего профессионального образования</h2>
+<?php 	} elseif($MODULE_OUTPUT["type"]=="secondary") { ?>
+		<h2 style="text-align: center;">Перечень специальностей среднего профессионального образования</h2>
+<?php 	} elseif($MODULE_OUTPUT["type"]=="bachelor") { ?>
+		<h2 style="text-align: center;">Направления подготовки бакалавров</h2>
+<?php 	} elseif($MODULE_OUTPUT["type"]=="magistracy") { ?>
+		<h2 style="text-align: center;">Направления подготовки магистров</h2>
+<?php 	}*/
+        if (isset($MODULE_OUTPUT["type_tuition"]) && $MODULE_OUTPUT["type_tuition"]=="correspondence_true") { ?>
+        <p align="center">Показаны только специальности заочной формы обучения. <a href="?sort=all" >Показать все</a>.</p>
+<?php   } ?>
+        <table class="nsau_table" align="center">
+			<thead>
+				<tr>
+					<td><a href="?sort=code" title="Сортировка по коду специальности"><strong>Код</strong></a></td>
+					<th><a href="?sort=name" title="Сортировка по наименованию специальности"><strong>Наименование специальности</strong></a></th>
+					<?php /* ?><th><a href="?sort=year" title="Сортировка по году открытия специальности">Год открытия</a></th>
+          <th>Квалификация</th>
+					<th>Очная</th>
+					<th><a href="?sort=correspondence_tuition" title="Выбрать специальности заочной формы обучения">Заочная</a></th><?php */ ?>            
+				</tr>				
+			</thead>
+			<tbody>
+<?php 	/*$j=0;
+        $dir=$MODULE_OUTPUT["specialities"];
+        if ($MODULE_OUTPUT["specialities"][0]["has_vacancies"]) { ?>
+			<tr style="text-align: center; font-weight:bolder; background-color: #f09695;">
+				<td style="font-size:12pt; padding:5px;" colspan="6"><?=$dir[$j]["direction"]?>&nbsp;-&nbsp;<?=$dir[$j]["name_dir"]?> </td>
+			</tr>
+<?php 	}*/
+		foreach($MODULE_OUTPUT["specialities"]  as $direction_id => $direction) {
+			if($direction["has_vacancies"] == 1 && count($direction['spec'])) { ?>
+				<tr class="tr_highlight">
+					<th colspan="6"><?=$direction_id?>&nbsp;-&nbsp;<?=$direction["direction"]?></th>
+				</tr>
+<?php			foreach($direction['spec'] as $special) {
+					if($special["has_vacancies"] == 1) { ?>
+				<tr>
+				    <td><a href="/file/<?=$special['file_id'];?>"><strong><?=$special["code"]?></strong></a><?php /* ?>
+<?php 					if($MODULE_OUTPUT["type"]=="higher") { ?>
+						<a href="/speciality/higher/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["code"]?></a>
+<?php 					} elseif($MODULE_OUTPUT["type"]=="secondary") { ?>
+						<a href="/speciality/secondary/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["code"]?></a>
+<?php 					} elseif($MODULE_OUTPUT["type"]=="bachelor") { ?>
+						<a href="/speciality/bachelor/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["code"]?></a>
+<?php 					} elseif($MODULE_OUTPUT["type"]=="magistracy") { ?>
+						<a href="/speciality/magistracy/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["code"]?></a>
+<?php 					} ?><?php */ ?>
+				    </td>
+				    <td><a href="/file/<?=$special['file_id'];?>"><strong><?=$special["name"]?></strong></a><?php /* ?>
+<?php 					if($MODULE_OUTPUT["type"]=="higher") { ?>
+						<a href="/speciality/higher/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["name"]?></a>
+<?php 					} elseif($MODULE_OUTPUT["type"]=="secondary") { ?>
+						<a href="/speciality/secondary/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["name"]?></a>
+<?php 					} elseif($MODULE_OUTPUT["type"]=="bachelor") { ?>
+						<a href="/speciality/bachelor/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["name"]?></a>
+<?php 					} elseif($MODULE_OUTPUT["type"]=="magistracy") { ?>
+						<a href="/speciality/magistracy/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["name"]?></a>
+<?php 					}?><?php */ ?>
+						<br/>
+<?php 					if ($MODULE_OUTPUT["privileges"]["specialities.handle"]==true /*&& 0*/) { ?>
+						<a href="/office/speciality_directory/edit_speciality/<?=$special["id"]?>/" target="_blank"><font size="1pt">Редактировать</font></a>
+<?php  					} ?>
+				    </td>
+				    <?php /* ?><td ><?=$special["year_open"]?></td>
+            <td><?php if($special["old"]) { 
+            switch ($special["type"]) {
+					        case "secondary":
+					            $type_sp="Среднее професcиональное образование";
+					        break;
+					        case "higher":
+					            $type_sp="Высшее професcиональное образование";
+					        break;
+					        case "magistracy":
+					            $type_sp="Магистратура";
+					        break;
+					        case "bachelor":
+					            $type_sp="Бакалавриат";
+					        break;
+					    } 
+            }
+            else $type_sp = $special["qualification"];?>
+              <?=$type_sp;?>
+              </td>
+<?php 					if($special["internal_tuition"]==1) { ?>
+					<td class="td_highlight">+</td>
+<?php 					} else{ ?>
+					<td class="td_highlight">-</td>
+<?php 					}
+						if($special["correspondence_tuition"]==1) { ?>
+					<td>+</td>
+<?php 					} else{ ?>
+					<td>-</td>
+<?php 					} ?> <?php */ ?>                                              
+				</tr>
+<?php				}
+				}
+			} 
+		}
+       ?>				
+			</tbody>
+		</table>
+<?php
+	}
+	break;
            
     case "specialities": {
 		/*echo "<pre>";
@@ -507,6 +616,7 @@ switch($MODULE_OUTPUT["mode"])
 					<th><a href="?sort=code" title="Сортировка по коду специальности">Код</a></th>
 					<th><a href="?sort=name" title="Сортировка по наименованию специальности">Наименование специальности</a></th>
 					<th><a href="?sort=year" title="Сортировка по году открытия специальности">Год открытия</a></th>
+          <th>Квалификация</th>
 					<th>Очная</th>
 					<th><a href="?sort=correspondence_tuition" title="Выбрать специальности заочной формы обучения">Заочная</a></th>            
 				</tr>				
@@ -549,11 +659,30 @@ switch($MODULE_OUTPUT["mode"])
 						<a href="/speciality/magistracy/<?=$special["code"]?>/<?=$special["id"]?>/"><?=$special["name"]?></a>
 <?php 					}?>
 						<br/>
-<?php 					if ($MODULE_OUTPUT["privileges"]["specialities.handle"]==true && 0) { ?>
-						<a href="/speciality/<?=$special["code"]?>/?node=<?=$NODE_ID?>&amp;action=edit#form"><font size="1pt">Редактировать</font></a>
+<?php 					if ($MODULE_OUTPUT["privileges"]["specialities.handle"]==true /*&& 0*/) { ?>
+						<a href="/office/speciality_directory/edit_speciality/<?=$special["id"]?>/" target="_blank"><font size="1pt">Редактировать</font></a>
 <?php  					} ?>
 				    </td>
 				    <td ><?=$special["year_open"]?></td>
+            <td><?php if($special["old"]) { 
+            switch ($special["type"]) {
+					        case "secondary":
+					            $type_sp="Среднее професcиональное образование";
+					        break;
+					        case "higher":
+					            $type_sp="Высшее професcиональное образование";
+					        break;
+					        case "magistracy":
+					            $type_sp="Магистратура";
+					        break;
+					        case "bachelor":
+					            $type_sp="Бакалавриат";
+					        break;
+					    } 
+            }
+            else $type_sp = $special["qualification"];?>
+              <?=$type_sp;?>
+              </td>
 <?php 					if($special["internal_tuition"]==1) { ?>
 					<td class="td_highlight">+</td>
 <?php 					} else{ ?>
@@ -660,7 +789,7 @@ switch($MODULE_OUTPUT["mode"])
 									<select name="direction" size="1">
 										<option value="0"<?=($form_back['direction'] == 0 ? " selected='selected'" : "")?>>Направление специальности</option>
 <?php		foreach($MODULE_OUTPUT["directory"] as $dir) { ?>
-										<option value="<?=$dir["code"]?>"<?=($form_back['direction'] == $dir["code"] ? " selected='selected'" : "")?>><?=$dir["name"]?></option>
+										<option value="<?=$dir["code"]?>"<?=($form_back['direction'] == $dir["code"] ? " selected='selected'" : "")?>><?=$dir["code"]?> - <?=$dir["name"]?></option>
 <?php 		} ?>
 									</select>
 								</dd>
@@ -689,7 +818,7 @@ switch($MODULE_OUTPUT["mode"])
 									<select name="qualification" size="1" onchange="console.log(this.options[this.selectedIndex].getAttribute('data-old_type'));this.form.elements['type'].value = this.options[this.selectedIndex].getAttribute('data-old_type');">
 										<option value="0"<?=($form_back['qualification'] == 0 ? " selected='selected'" : "")?> data-old_type="">Квалификация</option>
 										<?php foreach($MODULE_OUTPUT["qualifications"] as $qual_id => $qualif) { ?>
-										<option value="<?=$qual_id?>"<?=($form_back['qualification'] == $qual_id ? " selected='selected'" : "")?> data-old_type="<?=$qualif['old_type']?>"><?=$qualif["name"]?></option>
+										<option value="<?=$qual_id?>"<?=($form_back['qualification'] == $qual_id ? " selected='selected'" : "")?> data-old_type="<?=$qualif['old_type']?>" title="<?=$MODULE_OUTPUT["spec_type_name"][$qualif['old_type']]; ?>"><?=$qualif["name"]?></option>
 										<?php } ?>
 									</select>&nbsp;<a href="<?=$EE["engine_uri"]?>manage_qualifications/">Управление квалификациями</a>
 								</dd>
@@ -711,8 +840,12 @@ switch($MODULE_OUTPUT["mode"])
 								<dt>
 								<select name="old_spec" size="1" class="editable-select">
 									<option value="0">--------------</option>
-									<?php foreach ($MODULE_OUTPUT['old_specs'] as $old_id => $old_spec) { ?>
-									<option value="<?=$old_id; ?>"<?=($form_back['old_spec'] == $qual_id ? " selected='selected'" : "")?>><?=$old_spec['code']?> - <?=$old_spec['name']?></option>
+									<?php foreach ($MODULE_OUTPUT['old_specs'] as $dir_code => $dir) { ?>
+									<optgroup label="<?=$dir["code"];?> - <?=$dir["title"];?>">
+									<?php foreach ($dir["specs"] as $old_id => $old_spec) { ?>
+									<option value="<?=$old_id; ?>"<?=($form_back['old_spec'] == $old_id ? " selected='selected'" : "")?>><?=$old_spec['code']?> - <?=$old_spec['name']?></option>
+									<?php } ?>
+									</optgroup>
 									<?php } ?>
 								</select>
 								</dt>
@@ -843,9 +976,9 @@ switch($MODULE_OUTPUT["mode"])
 					    <option disabled>--------------------------------------------</option>
 <?php 					foreach($MODULE_OUTPUT["direction"] as $dir) {
 							if ($dir["code"]==$special["direction"]) { ?>
-						<option value="<?=$dir["code"]?>" selected="selected"><?=$dir["name"]?></option> 
+						<option value="<?=$dir["code"]?>" selected="selected"><?=$dir["code"]?> - <?=$dir["name"]?></option> 
 <?php 						} else { ?>
-					    <option value="<?=$dir["code"]?>"><?=$dir["name"]?></option>
+					    <option value="<?=$dir["code"]?>"><?=$dir["code"]?> - <?=$dir["name"]?></option>
 <?php 						}
 						}
 						$i=0; ?>
@@ -854,8 +987,12 @@ switch($MODULE_OUTPUT["mode"])
           Старая специальность: <br />
           <select name="old_spec" size="1" class="editable-select">
 									<option value="0">--------------</option>
-									<?php foreach ($MODULE_OUTPUT['old_specs'] as $old_id => $old_spec) { ?>
+									<?php foreach ($MODULE_OUTPUT['old_specs'] as $dir_code => $dir) { ?>
+									<optgroup label="<?=$dir["code"];?> - <?=$dir["title"];?>">
+									<?php foreach ($dir["specs"] as $old_id => $old_spec) { ?>
 									<option value="<?=$old_id; ?>"<?=($special['old_id'] == $old_id ? " selected='selected'" : "")?>><?=$old_spec['code']?> - <?=$old_spec['name']?></option>
+									<?php } ?>
+									</optgroup>
 									<?php } ?>
 								</select><br />
                 <?php } ?>
@@ -920,7 +1057,9 @@ switch($MODULE_OUTPUT["mode"])
 							<td align="center"><input type="text" name="spec_type[<?=$special['old'] ? $edit["type"]: $edit['id']; ?>][qualification]" value="<?=$edit["qualification"]?>" /></td>                       
 					    </tr>
 <?php 					} ?>
-					</table><br />
+					</table>
+          <a href="<?=$EE["engine_uri"]?>add_spec_type/<?=$special['id'];?>/">Добавить <?php if($special['old'] == 0) { ?>квалификацию<?php } else { ?>уровень подготовки<?php } ?></a><br />  
+          <br />
           
           <?php if($special['old'] == 0 && count($MODULE_OUTPUT["speciality_edit"]) > 0) { ?>   
           <fieldset>
@@ -1964,7 +2103,7 @@ switch($MODULE_OUTPUT["mode"])
 						<dl>
 							<dt>
 								<label>Пароль:<span id="genpass"></span></label>
-								<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead"></span></a></span>
+								<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead" class="instead"></span></a></span>
 							</dt>
 							<dd>
 								<input name="password1" id="add_pass" type="password"  autocomplete="off" />
@@ -2378,7 +2517,7 @@ switch($MODULE_OUTPUT["mode"])
 						<dl>
 							<dt>
 								<label>Пароль:<span id="genpass"></span></label>
-								<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead"></span></a></span>
+								<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead" class="instead"></span></a></span>
 							</dt>
 							<dd>
 								<input name="password1" id="add_pass" type="password"  autocomplete="off" />
@@ -3813,12 +3952,12 @@ $form_edu = array(  1=>"Очная", 2=>"Заочная");
 		<div><a href="?list_type=subj">По дисциплинам</a> &nbsp;&nbsp;&nbsp;<strong>По направлению подготовки</strong></div>
 		<div class="subject_file_list">
 			<ul>
-<?php		foreach($MODULE_OUTPUT["spec_file"] as $spec) { ?>
+<?php		foreach($MODULE_OUTPUT["spec_file"] as $spec_id => $spec) { ?>
 				<li>
 <?php			if(!isset($spec['files'])) { ?>
 					<?=$spec['code']?> - <?=$spec['name']?>
 <?php			} else { ?>
-					<a href="javascript:void(0)" onclick="jQuery(this).parent().toggleClass('active');"><?=$spec['code']?> - <?=$spec['name']?></a>
+					<a href="javascript:void(0)" onclick="jQuery(this).parent().toggleClass('active');" data-id="<?=$spec_id; ?>"><?=$spec['code']?> - <?=$spec['name']?></a>
 					<ul>
 <?php				foreach($spec['files'] as $file_id => $file_info) {
 						$title = "";
@@ -3856,12 +3995,12 @@ $form_edu = array(  1=>"Очная", 2=>"Заочная");
 		<div><strong>По дисциплинам</strong> &nbsp;&nbsp;&nbsp;<a href="?list_type=spec">По направлению подготовки</a></div>
 		<div class="subject_file_list">
 			<ul>
-<?php		foreach($MODULE_OUTPUT["subjects_file"] as $subj) { ?>
+<?php		foreach($MODULE_OUTPUT["subjects_file"] as $subj_id => $subj) { ?>
 				<li>
 <?php			if(!isset($subj['files'])) { ?>
 					<?=$subj['name']?>
 <?php			} else { ?>
-					<a href="javascript:void(0)" onclick="jQuery(this).parent().toggleClass('active');"><?=$subj['name']?></a>
+					<a href="javascript:void(0)" onclick="jQuery(this).parent().toggleClass('active');" data-id="<?=$subj_id; ?>"><?=$subj['name']?></a>
 					<ul>
 <?php				foreach($subj['files'] as $file_id => $file_info) {
 						$title = "";
@@ -5090,7 +5229,7 @@ $form_edu = array(  1=>"Очная", 2=>"Заочная");
 <?php				foreach($dep["teachers"] as $teachers) {
 						if (isset($MODULE_OUTPUT["allow_handle"][$dep_id]) && $MODULE_OUTPUT["allow_handle"][$dep_id]) { ?>
 					<li>
-						<a href="/people/<?=$teachers["id"]?>/"><?=$teachers["last_name"]?> <?=$teachers["name"]?> <?=$teachers["patronymic"]?></a>
+						<a href="/people/<?=$teachers["id"]?>/"><?php if($teachers["status"] == 9) {?><span class="user_inactive"><?php } ?><?=$teachers["last_name"]?> <?=$teachers["name"]?> <?=$teachers["patronymic"]?><?php if($teachers["status"] == 9) {?></span><?php } ?></a>
 						<a href="edit/<?=$teachers["id"]?>/<?=$teachers["department_id"]?>/"><img src="/themes/images/edit.png" /></a>
 						<a href="delete/<?=$teachers["id"]?>/<?=$teachers["department_id"]?>/" onclick="return confirm('Вы уверены, что хотите удалить выбранный элемент?');"><img src="/themes/images/delete.png" /></a>
 					</li>
@@ -5311,7 +5450,7 @@ $form_edu = array(  1=>"Очная", 2=>"Заочная");
 								<span id="genpass"></span>
 								<span id="copypass">
 									<a onclick="copypass('genpass','add_pass','repeatpass');">
-										использовать этот пароль<span id="instead"></span>
+										использовать этот пароль<span id="instead" class="instead"></span>
 									</a>
 								</span>
 							</h3>
@@ -7036,7 +7175,7 @@ $form_edu = array(  1=>"Очная", 2=>"Заочная");
 							<dl>
 								<dt>
 									<label>Пароль<span class="obligatorily">*</span>:<span id="genpass"></span></label>
-									<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead"></span></a></span>
+									<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead" class="instead"></span></a></span>
 								</dt>
 								<dd>
 									<input name="password1" id="add_pass" type="password"  autocomplete="off" />
@@ -7140,7 +7279,7 @@ $form_edu = array(  1=>"Очная", 2=>"Заочная");
 							<dl>
 								<dt>
 									<label>Пароль<span class="obligatorily">*</span>:<span id="genpass"></span></label>
-									<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead"></span></a></span>
+									<span id="copypass"><a onclick="copypass('genpass','add_pass','repeatpass');">использовать этот пароль<span id="instead" class="instead"></span></a></span>
 								</dt>
 								<dd>
 									<input name="password1" id="add_pass" type="password"  autocomplete="off" />

@@ -1,7 +1,7 @@
 <?php
 class EVacancies
-// version: 1.9
-// date: 2010-03-23
+// version: 1.12
+// date: 2014-04-09
 {
     var $module_id;
     var $node_id;
@@ -45,7 +45,8 @@ class EVacancies
 			
 			case "vacancy_edit":
 			if ($Engine->OperationAllowed(10, "vacancies.handle", 0, $Auth->usergroup_id)) {
-				$this->output["mode"] = "vacancy_edit";
+				$this->output["mode"] = $this->output["scripts_mode"] = "vacancy_edit";
+				$this->output['plugins'][] = 'jquery.ui.datepicker.min';
 				$this->vacancy_edit($parts[1]);
 			}
 			break;
@@ -59,7 +60,8 @@ class EVacancies
 			
 			case "vacancy_add":
 			if ($Engine->OperationAllowed(10, "vacancies.handle", 0, $Auth->usergroup_id)) {
-				$this->output["mode"] = "vacancy_add";
+				$this->output["mode"] = $this->output["scripts_mode"] = "vacancy_add";
+				$this->output['plugins'][] = 'jquery.ui.datepicker.min';
 				$this->vacancy_add();
 			}
 			break;
@@ -88,6 +90,34 @@ class EVacancies
 		$res = $DB->Exec("select distinct district from `nsau_vacancies` order by district");
 		while ($row = $DB->FetchAssoc($res)) {
 			$this->output["districts"][] = $row;
+		}
+		
+		$res = $DB->Exec("select distinct vacancy from `nsau_vacancies` order by vacancy");
+		while ($row = $DB->FetchAssoc($res)) {
+			$this->output["titles"][] = $row;
+		}
+		
+		$DB->SetTable("nsau_specialities", "s");
+		$DB->AddTable("nsau_vacancies", "v");
+		$DB->AddField("s.code");
+		$DB->AddField("s.name");
+		$DB->AddCondFF("v.speciality_id", "=", "s.code");
+		$DB->AddGrouping("s.id");
+		$res_spec = $DB->Select();
+			
+		while ($row = $DB->FetchAssoc($res_spec)) {
+			$this->output["specialities"][$row["code"]] = $row;
+		}
+		
+		$DB->SetTable("nsau_faculties", "f");
+		$DB->AddTable("nsau_vacancies", "v");
+		$DB->AddField("f.id");
+		$DB->AddField("f.name");
+		$DB->AddCondFF("v.faculty_id", "=", "f.id");
+		$res_lodg = $DB->Select();
+		
+		while ($row = $DB->FetchAssoc($res_lodg)) {
+			$this->output["faculties"][$row["id"]] = $row;
 		}
 		
 		/*$DB->SetTable("nsau_vacancies");
@@ -121,15 +151,43 @@ class EVacancies
 			$_SESSION["filter_lodging"] = $_POST[$this->node_id]["filter"]["lodging"];
 		elseif (isset($_POST[$this->node_id]["filter"]["lodging"]))
 			unset($_SESSION["filter_lodging"]);
+			
+		if (isset($_POST[$this->node_id]["filter"]["vacancy"]) && $_POST[$this->node_id]["filter"]["vacancy"])
+			$_SESSION["filter_vacancy"] = $_POST[$this->node_id]["filter"]["vacancy"];
+		elseif (isset($_POST[$this->node_id]["filter"]["vacancy"]))
+			unset($_SESSION["filter_vacancy"]);
 		
+		if (isset($_POST[$this->node_id]["filter"]["speciality_id"]) && $_POST[$this->node_id]["filter"]["speciality_id"])
+			$_SESSION["filter_speciality_id"] = $_POST[$this->node_id]["filter"]["speciality_id"];
+		elseif (isset($_POST[$this->node_id]["filter"]["speciality_id"]))
+			unset($_SESSION["filter_speciality_id"]);
+		
+		if (isset($_POST[$this->node_id]["filter"]["faculty_id"]) && $_POST[$this->node_id]["filter"]["faculty_id"])
+			$_SESSION["filter_faculty_id"] = $_POST[$this->node_id]["filter"]["faculty_id"];
+		elseif (isset($_POST[$this->node_id]["filter"]["faculty_id"]))
+			unset($_SESSION["filter_faculty_id"]);
+		                                        
+    if (isset($_GET[$this->node_id]["filter"]["company"]) && $_GET[$this->node_id]["filter"]["company"])
+			$_SESSION["filter_company"] = $_GET[$this->node_id]["filter"]["company"];
+		elseif (isset($_GET[$this->node_id]["filter"]["company"]) || $_SERVER["REQUEST_METHOD"] == "POST" )
+			unset($_SESSION["filter_company"]);
+      
 		if (isset($_SESSION["filter_district"]))
 			$DB->AddCondFS("district", "=", $_SESSION["filter_district"]);
 		if (isset($_SESSION["filter_lodging"]))
 			$DB->AddCondFS("lodging_id", "=", $_SESSION["filter_lodging"]);
+		if (isset($_SESSION["filter_vacancy"]))
+			$DB->AddCondFS("vacancy", "=", $_SESSION["filter_vacancy"]);
+		if (isset($_SESSION["filter_speciality_id"]))
+			$DB->AddCondFS("speciality_id", "=", $_SESSION["filter_speciality_id"]);
+		if (isset($_SESSION["filter_faculty_id"]))
+			$DB->AddCondFS("faculty_id", "=", $_SESSION["filter_faculty_id"]);
 		if (isset($_SESSION["filter_salary_from"]))
 			$DB->AddCondFS("salary", ">=", $_SESSION["filter_salary_from"]);
 		if (isset($_SESSION["filter_salary_to"]))
 			$DB->AddCondFS("salary", "<=", $_SESSION["filter_salary_to"]);
+    if (isset($_SESSION["filter_company"]))
+			$DB->AddCondFS("company", "=", $_SESSION["filter_company"]);
 		
 		if (isset($_GET["sortby"]))
 			$DB->AddOrder($_GET["sortby"], $_GET["desc"]);
@@ -143,14 +201,25 @@ class EVacancies
 		$this->output["pager_output"] = $result = $Pager->Act();
 		
 		$DB->SetTable("nsau_vacancies");
+    $DB->AddExp('*');
+    $DB->AddExp("DATE_FORMAT(pub_date, '%d.%m.%Y')", "vac_date");
+    //$DB->AddExp('*');
 		if (isset($_SESSION["filter_district"]))
 			$DB->AddCondFS("district", "=", $_SESSION["filter_district"]);
 		if (isset($_SESSION["filter_lodging"]))
 			$DB->AddCondFS("lodging_id", "=", $_SESSION["filter_lodging"]);
+		if (isset($_SESSION["filter_vacancy"]))
+			$DB->AddCondFS("vacancy", "=", $_SESSION["filter_vacancy"]);
+		if (isset($_SESSION["filter_speciality_id"]))
+			$DB->AddCondFS("speciality_id", "=", $_SESSION["filter_speciality_id"]);
+		if (isset($_SESSION["filter_faculty_id"]))
+			$DB->AddCondFS("faculty_id", "=", $_SESSION["filter_faculty_id"]);
 		if (isset($_SESSION["filter_salary_from"]))
 			$DB->AddCondFS("salary", ">=", $_SESSION["filter_salary_from"]);
 		if (isset($_SESSION["filter_salary_to"]))
-			$DB->AddCondFS("salary", "<=", $_SESSION["filter_salary_to"]);
+			$DB->AddCondFS("salary", "<=", $_SESSION["filter_salary_to"]); 
+    if (isset($_SESSION["filter_company"]))
+			$DB->AddCondFS("company", "=", $_SESSION["filter_company"]);
 		
 		if (isset($_GET["sortby"]))
 			$DB->AddOrder($_GET["sortby"], $_GET["desc"]);
@@ -171,7 +240,7 @@ class EVacancies
 	}
 	
 	function vacancy_edit($id) {
-		global $DB;
+		global $DB, $Engine;
 		
 		if (isset($_POST[$this->node_id]["edit_vacancy"])) {
 			$DB->SetTable("nsau_vacancies");
@@ -185,6 +254,7 @@ class EVacancies
 			$DB->AddValue("contacts", $_POST[$this->node_id]["edit_vacancy"]["contacts"]);
 			$DB->AddValue("faculty_id", $_POST[$this->node_id]["edit_vacancy"]["faculty_id"]);
 			$DB->AddValue("speciality_id", $_POST[$this->node_id]["edit_vacancy"]["speciality_id"]);
+			$DB->AddValue("pub_date", $_POST[$this->node_id]["edit_vacancy"]["pub_date"]);
 			$DB->AddCondFS("id", "=", $id);
 			if ($DB->Update())
 				$this->output["messages"]["good"][] = "Вакансия обновлена";
@@ -197,6 +267,8 @@ class EVacancies
 		if ($row = $DB->FetchAssoc($res)) {
 			$row["company"] = str_replace('"', "&quot;", $row["company"]);
 			$this->output["vacancy"] = $row;
+			
+			$Engine->AddFootstep($Engine->engine_uri.$Engine->module_uri, "Редактирование вакансии \"".$row['vacancy']."\"", '', false);
 			
 			$DB->SetTable("nsau_vacancies_education");
 			$res_edu = $DB->Select();
@@ -249,6 +321,7 @@ class EVacancies
 			$DB->AddValue("contacts", $_POST[$this->node_id]["add_vacancy"]["contacts"]);
 			$DB->AddValue("faculty_id", $_POST[$this->node_id]["add_vacancy"]["faculty_id"]);
 			$DB->AddValue("speciality_id", $_POST[$this->node_id]["add_vacancy"]["speciality_id"]);
+			$DB->AddValue("pub_date", $_POST[$this->node_id]["add_vacancy"]["pub_date"]);
 			if ($DB->Insert()) {
 				$this->output["messages"]["good"][] = "Вакансия добавлена";
 				CF::Redirect($Engine->engine_uri);
@@ -289,7 +362,7 @@ class EVacancies
 	}
 	
 	function vacancy_view ($id) {
-		global $DB;
+		global $DB, $Engine;
 
 		$DB->SetTable("nsau_vacancies");
 		$DB->AddCondFS("id", "=", $id);
@@ -320,7 +393,14 @@ class EVacancies
 			$row_spec = $DB->FetchAssoc($res);
 			$row["speciality"] = $row_spec["name"];
 			
+			$Engine->AddFootstep($Engine->engine_uri.$Engine->module_uri, $row['vacancy'], '', false);
+			
 			$this->output["vacancy"] = $row;
+			
+			if ($Engine->OperationAllowed(10, "vacancies.handle", 0, $Auth->usergroup_id))
+			$this->output["show_manage"] = 1;
+		else
+			$this->output["show_manage"] = 0;
 		}
 		else
 			$this->output["messages"]["bad"][] = "Неверный номер вакансии";

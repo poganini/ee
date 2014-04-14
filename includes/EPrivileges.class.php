@@ -1,8 +1,8 @@
 <?php
 
 class EPrivileges
-// version: 1.1
-// date: 2014-01-12
+// version: 1.2
+// date: 2014-01-28
 {
 	var $output;
 	var $node_id;
@@ -87,8 +87,8 @@ if (isset($_GET["delete_name"]) && isset($_GET["delete_module"])) {
 				case "ajax_get_elements":
 					$this->output["scripts_mode"] = $this->output["mode"] = "ajax_get_elements"; 
           
-		            $this->output["elements"] = array();
-		            if($this->mode != "ajax_autocomplete_element") $this->output["elements"][] = array('id' => -1, 'name'  => CF::Win2Utf('Все элементы'));
+          $this->output["elements"] = array();
+          if($this->mode != "ajax_autocomplete_element") $this->output["elements"][] = array('id' => -1, 'name'  => !AT_HOME ? 'Все элементы' : CF::Win2Utf('Все элементы'));
               
 					$DB->SetTable("engine_operations");
 					//$DB->AddField("operation_name");
@@ -103,34 +103,30 @@ if (isset($_GET["delete_name"]) && isset($_GET["delete_module"])) {
 						if($row["table_name"]) {
 							$DB->SetTable($row["table_name"]);
 							$DB->AddField("id");
-							if(empty($row["name_field"])) {
-								$DB->AddField("name");
-								$name_exp = "name";
-							}			                
-			                else {
-								$DB->AddExp($row["name_field"], "name");
-								$name_exp = $row["name_field"];
-							}
-			                
-			              
-			                if(isset($_REQUEST["data"]["q"])) {
-			                  $DB->AddCondXS($name_exp, "LIKE", "".iconv("utf-8", "Windows-1251", $_REQUEST['data']["q"])."%");
-			                }
-			              
-			                $DB->AddOrder("name");
+							if(empty($row["name_field"]))
+				              $DB->AddField("name");
+				              else 
+				              $DB->AddExp($row["name_field"], "name");
+				              
+				              if(isset($_REQUEST["data"]["q"])) {
+				                if(empty($row["name_field"])) $DB->AddCondFS("name", "LIKE", "".iconv("utf-8", "Windows-1251", $_REQUEST['data']["q"])."%");
+		                        else $DB->AddCondXS($row["name_field"], "LIKE", "". iconv("utf-8", "Windows-1251", $_REQUEST['data']["q"])."%");
+				              }
+				              
+				              $DB->AddOrder("name");
 							$res_elem = $DB->Select(); 
 							
 							while($row_elem = $DB->FetchAssoc($res_elem)) {
-								$row_elem['name'] = CF::Win2Utf($row_elem['name']);
+								$row_elem['name'] = !AT_HOME ? $row_elem['name'] : CF::Win2Utf($row_elem['name']);
 				                $this->output["elements"][] = $row_elem; 
-							}
+							}//print_r($this->output["elements"]); 
 						}
 					}
           
-          if($this->mode == "ajax_autocomplete_element") {
-            $this->output["json"] = $this->output["elements"];
-          } 
-          break; 					
+		          if($this->mode == "ajax_autocomplete_element") {
+		            $this->output["json"] = $this->output["elements"];
+		          } 
+		          break; 					
 			}
 				
 		}
@@ -320,6 +316,8 @@ if($element["table_name"]!=NULL){
 	function show_privileges($module_id = NULL, $usergroup_id = NULL)
 	{
 		global $DB;
+    
+    $this->output['usergroup_id'] = $usergroup_id; 
 		
 		$DB->SetTable("engine_privileges");
 		$DB->AddField("operation_name");
@@ -336,8 +334,7 @@ if($element["table_name"]!=NULL){
 		while ($row = $DB->FetchAssoc($res)) {
 			$DB->SetTable("engine_operations");
 			$DB->AddField("comment");
-			$DB->AddField("table_name");
-			$DB->AddField("name_field");
+			$DB->AddFields(array("table_name", "name_field"));
 			$DB->AddCondFS("operation_name", "=", $row["operation_name"]);
 			$DB->AddCondFS("module_id", "=", $row["module_id"]);
 			$res_op = $DB->Select();
@@ -364,25 +361,25 @@ if($element["table_name"]!=NULL){
 				$this->output["privileges"][$i]["usergroup"] = $row["usergroup_id"];
 			}
 			
-			$this->output["privileges"][$i]["entry_id"] = $row["entry_id"];
-			$this->output["privileges"][$i]["is_allowed"] = $row["is_allowed"];
-			$this->output["privileges"][$i]["usergroup_id"] = $row["usergroup_id"];
-			
 			if(!empty($row_op["table_name"]) && $row["entry_id"] != -1) {
 				$DB->SetTable($row_op["table_name"]);
-				if(empty($row_op["name_field"]))
-                $DB->AddField("name");
-                else 
-                $DB->AddExp($row_op["name_field"], "name");
-				
 				$DB->AddCondFS("id", "=", $row["entry_id"]);
-				//echo $DB->SelectQuery();
+				if(!empty($row_op["name_field"])) 
+					$DB->AddExp($row_op["name_field"], "name");
+				else 
+					$DB->AddField("name");
+				
+				//echo $DB->SelectQuery(1);
 				$res_entry = $DB->Select(1);
+				
 				while($row_entry = $DB->FetchAssoc($res_entry)) {
-					if(!empty($row_entry["name"])) $this->output["privileges"][$i]["entry_name"] = $row_entry["name"];
+					$this->output["privileges"][$i]["entry"] = $row_entry;
 				}
 			}
 			
+			$this->output["privileges"][$i]["entry_id"] = $row["entry_id"];
+			$this->output["privileges"][$i]["is_allowed"] = $row["is_allowed"];
+			$this->output["privileges"][$i]["usergroup_id"] = $row["usergroup_id"];
 			$i++;
 		}
 		

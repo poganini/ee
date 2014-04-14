@@ -1,0 +1,1052 @@
+<?php
+// version: 3.5.10
+// date: 2014-03-01
+global $Engine, $Auth, $EE;
+
+if(isset($MODULE_OUTPUT['scripts_mode'])) {
+	switch($MODULE_OUTPUT['scripts_mode']) {
+		case 'timetable_subjects': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			TimetableSubjects = function(moduleId) {
+				if($('.subj_list .delet_subj').length) {
+					$('.subj_list .delet_subj').click (function() {
+						var subj_id = $(this).attr('href');
+						subj_id = subj_id.split('/');
+						if(!confirm('Вы уверены, что хотите удалить дисциплину? ')) return false; 
+						if(subj_id[0] == 'delete') {
+							subj_id = subj_id[1];
+							var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_delete_subj', 'data': {'subj_id': subj_id} };
+							$.ajax({
+								type: 'POST',
+								url: '/ajax_mode/',
+								data: request,
+								success: function( data ) {
+									if(!(!data || !data.documentElement)) {
+										var rootNodeName = data.documentElement.nodeName;
+										if(rootNodeName != 'parsererror') {
+											xmlDocElem = data.documentElement;
+											if(rootNodeName == 'del_subj') {
+												var process = xmlDocElem.firstChild.data;
+												var error_msg = xmlDocElem.getElementsByTagName('error_msg');
+												if(process == 1) {
+													$('#subj_item_'+subj_id).remove();
+												} else {
+													if(error_msg.length > 0) {
+														error_msg = error_msg[0].firstChild.data;
+														alert('Ошибка удаления. ' + error_msg);
+													}
+													else {
+														alert('Ошибка удаления. По дисциплине имеются материалы.');
+													}
+												};
+											};
+										};
+									};
+								}
+							});
+						};
+						return false;
+					});
+				};
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'curriculum': {
+				$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			Curriculum = function(moduleId) {
+				if($('#curriculum .subject_group_item form').length) {
+					$('#curriculum .subject_group_item label input').click(function() {
+						if($(this).parents('.edit_form').hasClass('del_sgroup')) {
+							$(this).parents('.edit_form').removeClass('del_sgroup').addClass('edit_sgroup');						
+						} else {
+							$(this).parents('.edit_form').addClass('del_sgroup').removeClass('edit_sgroup');	
+						};
+					});
+				};
+				if($('#curriculum .select_subject').length) {
+					$('#curriculum .select_subject li dd span').text($('#curriculum .select_sgroup').find(':selected').attr('title')+'.');
+					$('#curriculum .select_sgroup').change(function() {
+						$('#curriculum .select_subject li dd span').text($(this).find(':selected').attr('title')+'.');
+					});
+					$('#curriculum .select_subject dl').hide();
+					$('#curriculum .select_subject li > label').click(function() {
+						$(this).next('dl').slideToggle();
+					});
+					$('#curriculum .select_subject dt label input:checked').parent().parent().addClass('checked').next('dd').addClass('checked');
+					$('#curriculum .select_subject dt label').click(function() {
+						if($(this).find('input').is(':checked')) {
+							$(this).parent().addClass('checked').next('dd').addClass('checked');
+						} else {
+							$(this).parent().removeClass('checked').next('dd').removeClass('checked');
+						}				
+					});
+				}
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'timetable_auditorium': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			TimetableAuditorium = function() {
+				$('.editable-select').editableSelect({
+					bg_iframe: true,
+					onSelect: function(list_item) {
+						this.select.get(0).options[list_item.index()].selected = 'selected';
+					}
+				});
+			};
+		});
+	</script>
+END;
+		}
+		break;
+		
+		case 'speciality_directory': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			$('.editable-select').editableSelect({
+                bg_iframe: true,
+                onSelect: function(list_item) {
+                  this.select.get(0).options[list_item.index()].selected = 'selected';
+                }
+            }).parents('form').submit(function(){
+              $(this).find('select.editable-select').removeAttr('disabled');
+            });
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'timetable_subjects_by_departments': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			TimetableSubjectsByDepartments = function() {
+				sendform_sbd = function(form) {
+	                if (form.subject.value == 0) {
+	                    alert('Пожалуйста, выберите предмет');
+	                    form.subject.focus();
+	                    return false;
+	                };
+	                if (form.faculty.value == 0) {
+	                    alert('Пожалуйста, выберите факультет');
+	                    form.faculty.focus();
+	                    return false;
+	                };
+	                if (form.teacher_id.value == 0) {
+	                    alert('Пожалуйста, выберите преподавателя');
+	                    form.teacher_id.focus();
+	                    return false;
+	                };
+	                if (form.groups.value == "") {
+	                    alert('Пожалуйста, введите номера групп');
+	                    form.groups.focus();
+	                    return false;
+	                };
+	                if (form.auditorium.value == "") {
+	                    alert('Пожалуйста, введите номера аудиторий');
+	                    form.auditorium.focus();
+	                    return false;
+	                };
+	                if (form.rate.value == 0) {
+	                    alert('Пожалуйста, выберите размер занимаемой ставки');
+	                    form.rate.focus();
+	                    return false;
+	                };
+	                return true;
+	            };
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'input_calendar': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			InputCalendar = function() {
+				$('input.date_time').datepicker({
+					closeText: 'Закрыть', // Display text for close link
+					prevText: 'Предыдущий', // Display text for previous month link
+					nextText: 'Следующий', // Display text for next month link
+					currentText: 'Сегодня', // Display text for current month link
+					monthNames: ['Январь','Февраль','Март','Апрель','Май','Июнь', 'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'], // Names of months for drop-down and formatting
+					monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июнь', 'Июль', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'], // For formatting
+					dayNames: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'], // For formatting
+					dayNamesShort: ['Вос', 'Пон', 'Втор', 'Сре', 'Чет', 'Пят', 'Суб'], // For formatting
+					dayNamesMin: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'], // Column headings for days starting at Sunday
+					weekHeader: 'Wk', // Column header for week of the year
+					dateFormat: 'yy-mm-dd', // See format options on parseDate);
+					//timeFormat: 'hh:mm:ss',
+					//ampm: false,
+					//hourMin: 8,
+					//hourMax: 18,
+					//timeOnlyTitle: 'Выберите время',
+					//timeText: 'Время',
+					//hourText: 'Часы',
+					//minuteText: 'Минуты',
+					//secondText: 'Секунды',
+					//init_this_time: true,
+					firstDay: 1,
+				});
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'global_people': {
+				$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+
+
+		jQuery(document).ready(function($) {
+			GlobalPeople = function(moduleId) {
+				var is_curator = '{$MODULE_DATA['output']['editperson']['is_curator']}';
+				if (is_curator == '')
+					is_curator = '{$MODULE_DATA['output']['display_variant']['add_item']['is_curator']}';
+				if (is_curator == 'on')
+					is_curator = '1';
+				$('#curator_text, #curator_groups_cont').css('display', is_curator == '1' ? 'block' : 'none');
+				$('#curator_selector').change(function() {
+					$('#curator_text_parent,#curator_groups_cont').css('display', this.checked ? 'block' : 'none');
+				});
+				
+				if($('#people_cat_select').length) {
+					$('#people_form').attr('class', 'people_cat_'+$('#people_cat_select').val());
+					if($('#people_form #responsible input').is(':checked') || $('#people_cat_select').val() == 3) {
+						$('#usergroup').removeClass('hidden');
+					} else {
+						
+					};
+					$('#people_form .add_status input').removeAttr('checked');
+					$('#people_form .add_status .people_cat_'+$('#people_cat_select').val()+':first input').attr({'checked':'checked'});
+						
+					$('#people_cat_select').change(function() {
+						$('#people_form').attr('class', 'people_cat_'+jQuery(this).val());
+						$('#people_form .add_status input').removeAttr('checked');
+						$('#people_form .add_status .people_cat_'+$('#people_cat_select').val()+':first input').attr({'checked':'checked'});
+						if($('#people_cat_select').val() == 3 || ($('#people_form #responsible input').is(':checked') && $('#people_cat_select').val() == 2)) {
+							$('#usergroup').removeClass('hidden');
+						} else {
+							$('#usergroup').addClass('hidden');
+							$('#people_form #responsible input').removeAttr('checked');
+						};
+					});
+				};
+				
+				$('#people_form #responsible input').click(function() {
+					if($(this).is(':checked')) {
+						$('#usergroup').removeClass('hidden');
+					} else {
+						$('#usergroup').addClass('hidden');
+					};
+				});
+				$('#department_select dd').click(function() {
+					$('#department_select dd').removeClass('selected');
+					$(this).addClass('selected');
+				}).dblclick(function() {
+					if(!$(this).hasClass('hidden')) {
+						var option = $(this);
+						var option_val = option.attr('id').split('_');
+						option_val = option_val[1];
+						$('#department_list').append('<li><input type=hidden name=department['+option_val+'] value='+option_val+' />'+option.text()+'<em class="inline-block"></em></li>');
+						if ($('#curator_groups')) {
+							$('#curator_groups').append('<optgroup id=\''+option_val+'\' label=\''+option.text()+'\'><option></option></optgroup>');
+						}
+						option.addClass('hidden');
+						option.removeClass('selected');
+					};
+				});
+				$('#department_list li em').live('click', function(){
+					var dep_val = $(this).parent().find('input').attr('value');
+					var option = $('#department_select #depid_'+dep_val);
+					option.removeClass('hidden');
+					$(this).parent().remove();
+				});
+
+				SetCuratorGroupsSelectHandlers = function(container, sourceSelect,destSelect,sourceSelector, destSelector, destDataName) {
+														
+					$('#'+destSelector).on('click', function() {
+						var optFrom = $('#'+destSelect+' option:selected');
+						if (optFrom.length && optFrom.text()) {
+							optFrom.each(function() {
+								$('#'+container+' input[value='+$(this).val()+']').remove();
+							});
+							var optFromParents = optFrom.parent();
+							var optTo = $('#'+sourceSelect+' option:first');
+							optFrom.insertBefore(optTo); // не учитываем случай, когда базовый список уже пустой, ибо unreal
+							optFromParents.each(function() {
+								if (!$(this).children().length)
+									$('<option></option>').appendTo($(this));
+							});
+						} 
+					});
+					
+					$('#'+sourceSelector).on("click", function() {
+						var optFrom = $('#'+sourceSelect+' option:selected');
+						if (optFrom.length && optFrom.text()) {
+							var optTo = $('#'+destSelect+' option:selected').length ? $('#'+destSelect+' option:selected') : $('#'+destSelect+' option:first');
+							if (optTo.length > 1)
+								optTo = optTo.eq(optTo.length-1);
+							var optToParentId = optTo.parent().attr('id');
+							if (optTo.text()) 
+								optFrom.insertAfter(optTo);
+							else
+								optTo.replaceWith(optFrom);
+							optFrom.each(function() { 
+								$('<input type=\'hidden\' name=\''+destDataName+'['+optToParentId+']['+$(this).val()+']\' value=\''+$(this).val()+'\'></input>').appendTo($('#'+destSelect).parent());
+							});
+						}
+					});
+				}
+				
+				SetCuratorGroupsSelectHandlers('curator_groups_cont', 'all_groups', 'curator_groups', 'all_groups_selector', 'curator_groups_selector', 'curator_groups');
+		
+			};
+		});
+
+		
+	</script>
+END;
+		}
+		break;
+	
+		case 'ajax_edit_photo': {
+				$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			AjaxEditPhoto = function(moduleId) {
+				ajax_edit_photo = function(uri, elem_block) {
+					var form = '<img src="'+uri+'" id="cropbox" /><form class="coords_form" action="\" method="post" onsubmit="return checkCoords();"><input type="hidden" id="pos_x" name="x" value="0" /><input type="hidden" id="pos_y" name="y" value="0" /><input type="hidden" id="width" name="width" value="200" /><input type="hidden" id="height" name="height" value="200" /><input type="submit" value="Сохранить" /><input type="reset" value="Отмена" /></form>';
+					$.colorbox({
+						html: form,
+						transition: 'none',
+						auto_size: true,
+						close: false,
+						onComplete: function(){
+							var h = $('#cropbox').height();
+							var w = $('#cropbox').width();
+							if(h/w >= 1) {
+								$('#cropbox').width('200px');
+							} else {
+								$('#cropbox').height('200px');
+							}
+							$('#cropbox').Jcrop({
+								aspectRatio: 1,
+								setSelect:   [ 0, 0, 200, 200 ],
+								allowSelect: false,
+								allowResize: false,
+								allowMove: true,
+								onSelect: function(c) {
+									$('#pos_x').val(c.x);
+									$('#pos_y').val(c.y);
+									$('#width').val(c.w);
+									$('#height').val(c.h);
+								}
+							});
+							$('.coords_form input[type=submit]').click(function() {
+								elem_block.find('em').removeClass('hidden');
+								var request = {'module': moduleId, 'mode': 'html_code', 'params': 'ajax_edit_photo', 'data': {'pos_x': $('#pos_x').val(), 'pos_y': $('#pos_y').val(), 'width': $('#width').val(), 'height': $('#height').val(), 'img_uri': uri}};
+								$.ajax({
+									type: 'POST',
+									url: '/ajax_mode/', 
+									data: request,
+									success: function( data ) {
+										elem_block.find('img').replaceWith(data);
+										elem_block.find('em').addClass('hidden');
+									}
+								});
+								$.colorbox.close();
+								return false;
+							});
+							$('.coords_form input[type=reset]').click(function() {
+								$.colorbox.close();
+								return false;
+							});
+						}
+					});
+				}
+				if($('#people_form .user_photo a').length) {
+					$('#people_form .user_photo a').click(function() {
+						var uri = $(this).attr('href');						
+						ajax_edit_photo(uri, $(this).parent());
+						return false;
+					});
+				}
+				if($('.edit_photo').length) {					
+					$('.edit_photo').click(function() {
+						var uri = $(this).parent().find('.big_photo').attr('href');
+						ajax_edit_photo(uri, $(this).parent());
+						return false;
+					});
+				}
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'speciality': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			SpecialityChangeTitle = function() {
+				var title_changed = false;
+				change_title = function(elem, title, descr) { 
+					if (!title_changed) {
+						hrefs = elem.getElementsByTagName('A');
+						for (i=0; i < hrefs.length; i++) {
+							hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /title=(\S+)/, '&title='+encodeURI(title)));
+							if (descr) {
+								hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /descr=(\S*)/, '&descr='+encodeURI(descr)));
+							};
+						};
+						title_changed = true;
+					};
+				};
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'timetable_graphics': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			SendformGraphics = function() {
+				sendform_graphics = function(form) {
+	                if (form.subject_id.value == 0) {
+	                    alert('Пожалуйста, выберите предмет');
+	                    form.subject_id.focus();
+	                    return false;
+	                };
+	                if (form.groups.value == "") {
+	                    alert('Пожалуйста, введите номера групп');
+	                    form.groups.focus();
+	                    return false;
+	                };
+	                if (form.kol_groups.value == "") {
+	                    alert('Пожалуйста, введите количество групп');
+	                    form.kol_groups.focus();
+	                    return false;
+	                };
+	                if (form.lecture_hours.value == "") {
+	                    alert('Пожалуйста, введите количество лекционных часов');
+	                    form.lecture_hours.focus();
+	                    return false;
+	                };
+	                if (form.practice_hours.value == "") {
+	                    alert('Пожалуйста, введите количество часов практических занятий');
+	                    form.practice_hours.focus();
+	                    return false;
+	                };
+	                return true;    
+	            };
+			};
+		});
+	</script>
+END;
+		}
+		break;
+	
+		case 'sendform': {
+			$EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			Send_Forms = function() {
+				sendform = function(form) {
+					if (form.last_name.value == "") {
+						alert('Пожалуйста, введите фамилию студента');
+						form.last_name.focus();
+						return false;
+					};
+					if (form.first_name.value == "") {
+						alert('Пожалуйста, введите имя студента');
+						form.name.focus();
+						return false;
+					};
+					if (form.patronymic.value == "") {
+						alert('Пожалуйста, введите отчество студента');
+						form.patronymic.focus();
+						return false;
+					};
+					if (form.username.value == "") {
+						alert('Пожалуйста, введите имя пользователя студента');
+						form.patronymic.focus();
+						return false;
+					};
+					if (form.email.value == "") {
+						alert('Пожалуйста, введите E-mail студента');
+						form.email.focus();
+						return false;
+					};
+					if (form.password1.value == "") {
+						alert('Пожалуйста, введите пароль студента');
+						form.password1.focus();
+						return false;
+					};
+					if (form.password1.value != form.password2.value) {
+						alert('Введенные пароли не совпадают');
+						form.password1.focus();
+						return false;
+					};
+					return true;
+				};
+			};
+		});
+	</script>
+END;
+		}
+		break;
+    
+    case 'student_registr' : {
+    $EE["head_extra3"][] = <<<END
+	<script type="text/javascript">
+  jQuery(document).ready(function($) {
+    generate_password = function(form, syllableNum, numPass, useNums) {
+      if(typeof(form) == 'string') form = document.forms[form];
+      syllableNum = typeof(syllableNum) != 'undefined' ? syllableNum : 3;
+      numPass = typeof(numPass) != 'undefined' ? numPass : 10; 
+      useNums = typeof(useNums) != 'undefined' ? useNums : true;
+      console.log(form);
+      console.log(form.password1.value);
+      console.log(form.password2.value);
+      
+      rand = function(from, to) { 
+          from = typeof(from) != 'undefined' ? from : 0;    // параметры
+          to = typeof(to) != 'undefined' ? to : from + 1;    // по умолчанию
+          return Math.round(from + Math.random()*(to - from)); 
+      }; 
+
+      getRandChar = function(a) { 
+          return a.charAt(rand(0,a.length-1)); 
+      }
+      
+      
+      form.getByClass = function(className, index) {
+        index = typeof(index) != "undefined" ? index : 0;
+        if(this.querySelectorAll) return this.querySelectorAll("."+className)[index];
+        return this.getElementsByClassName(className)[index];
+      }
+      
+      var cCommon = ""; 
+      var cAll = "bcdfghklmnprstvzjqwx";    // Все согласные 
+      var vAll = "aeiouy";    // Все гласные 
+      var lAll = cAll + vAll;    // Все буквы 
+      
+      if (form.password1.value)
+        form.getByClass('instead').innerHTML = " вместо " + form.password1.value;
+      else 
+        form.getByClass('instead').innerHTML = "";
+      
+      var elem = form.getByClass('genpass');
+      elem.innerHTML = ""; 
+      for(var j = 0; j < numPass; ++j) { 
+          // Коэффициент определяющий вероятность появления числа между слогами
+          var numProb = -1, numProbStep = 0.25;
+          for(var i = 0; i < syllableNum; ++i) { 
+              if(Math.round(Math.random())) { 
+                  elem.innerHTML +=   getRandChar(vAll) + 
+                                      getRandChar(lAll); 
+              } else { 
+                  elem.innerHTML += getRandChar(vAll); 
+              } 
+              if(useNums && Math.round(Math.random() + numProb)) { 
+                  elem.innerHTML += rand(0,9); 
+                  numProb += numProbStep; 
+              } 
+          } 
+      if (numPass > 1)
+        elem.innerHTML += "<br />";
+      }
+      form.getByClass('copypass').style.display = 'block';
+      
+      copypass = function() {
+        var password = form.getElementsByClassName('genpass')[0].innerHTML;
+        console.log(password);
+        form.password1.value = password;
+        form.password2.value = password;
+        
+        form.getByClass('copypass').style.display = 'none';
+      }
+    }
+  });
+  </script>
+END;
+    }
+    break; 
+	}
+}
+
+
+if (isset($MODULE_DATA["output"]["mode"]) && $MODULE_DATA["output"]["mode"]=="timetable_subjects") {
+/*	$EE["head_extra3"][] = "
+	 	<script type='text/javascript'>
+		jQuery(document).ready(function() {
+    		if(jQuery('.subj_list .delet_subj').length) {
+				jQuery('.subj_list .delet_subj').click (function() {
+					var subj_id = jQuery(this).attr('href');
+					subj_id = subj_id.split('/');
+					if(subj_id[0] == 'delete') {
+						subj_id = subj_id[1];
+						var request = {'module': ".$MODULE_OUTPUT['module_id'].", 'page_uri': '".$Engine->EngineUri()."', 'mode': 'html_code', 'params': 'ajax_delete_subj', 'data': {'subj_id': subj_id} };
+						jQuery.ajax({
+							type: 'POST',
+							url: '/ajax_mode/',
+							data: request,
+							success: function( data ) {
+								if(!(!data || !data.documentElement)) {
+									var rootNodeName = data.documentElement.nodeName;
+									if(rootNodeName != 'parsererror') {
+										xmlDocElem = data.documentElement;
+										if(rootNodeName == 'del_subj') {
+											var process = xmlDocElem.firstChild.data;
+											if(process == 1) {
+												jQuery('#subj_item_'+subj_id).remove();
+											} else {
+												alert('Ошибка удаления. По дисциплине имеются материалы.');
+											}
+										}
+									}
+								}
+							}
+						});
+					}
+					return false;
+				});
+			}
+  		});
+		</script>
+	";*/
+}
+if (isset($MODULE_OUTPUT["mode"]) && $MODULE_OUTPUT["mode"]=="curriculum" && isset($MODULE_OUTPUT['curriculum_allowed']) && $MODULE_OUTPUT['curriculum_allowed']) {
+	/*$EE["head_extra3"][] = "
+	 	<script type='text/javascript'>
+		jQuery(document).ready(function() {
+			if(jQuery('#curriculum .subject_group_item form').length) {
+				jQuery('#curriculum .subject_group_item label input').click(function() {
+					if(jQuery(this).parents('.edit_form').hasClass('del_sgroup')) {
+						jQuery(this).parents('.edit_form').removeClass('del_sgroup').addClass('edit_sgroup');						
+					} else {
+						jQuery(this).parents('.edit_form').addClass('del_sgroup').removeClass('edit_sgroup');	
+					}
+				});
+			}
+    		if(jQuery('#curriculum .select_subject').length) {
+				jQuery('#curriculum .select_subject li dd span').text(jQuery('#curriculum .select_sgroup').find(':selected').attr('title')+'.');
+				jQuery('#curriculum .select_sgroup').change(function() {
+					jQuery('#curriculum .select_subject li dd span').text(jQuery(this).find(':selected').attr('title')+'.');
+				});
+				jQuery('#curriculum .select_subject dl').hide();
+				jQuery('#curriculum .select_subject li > label').click(function() {
+					jQuery(this).next('dl').slideToggle();
+				});
+				jQuery('#curriculum .select_subject dt label input:checked').parent().parent().addClass('checked').next('dd').addClass('checked');
+				jQuery('#curriculum .select_subject dt label').click(function() {
+					if(jQuery(this).find('input').is(':checked')) {
+						jQuery(this).parent().addClass('checked').next('dd').addClass('checked');
+					} else {
+						jQuery(this).parent().removeClass('checked').next('dd').removeClass('checked');
+					}				
+				});
+			}
+  		});
+		</script>";*/
+}
+
+if (isset($MODULE_DATA["output"]["mode"]) && $MODULE_DATA["output"]["mode"]=="timetable_auditorium") {
+	/*$EE["head_extra3"][] = "
+	<script>
+		$(document).ready(function() { 
+			$('.editable-select').editableSelect({
+				bg_iframe: true,
+				onSelect: function(list_item) {
+					this.select.get(0).options[list_item.index()].selected = 'selected';
+				}
+			});
+		});
+	</script>";*/
+}
+
+if (isset($MODULE_DATA["output"]["mode"]) && $MODULE_DATA["output"]["mode"]=="people") {
+	 /*$EE["head_extra3"][] = "<script type=\"text/javascript\" src=\"" . HTTP_COMMON_SCRIPTS . "highslide/highslide.js\"></script>
+		<script type=\"text/javascript\">
+			hs.graphicsDir = '" . HTTP_COMMON_SCRIPTS . "highslide/graphics/';
+			hs.showCredits = false;
+			hs.fullExpandTitle = 'Полный размер';
+			hs.restoreTitle = 'Щелчок мышью закрывает изображение, клавиши-стрелки используются для перехода к предыдущему и следующему изображению';
+			hs.loadingText = 'Загрузка&hellip;';
+			hs.loadingTitle = 'Щёлкните мышью для отмены';
+			hs.allowMultipleInstances = false;
+		</script>";*/
+ }
+
+if (isset($MODULE_DATA["output"]["mode"]) && ($MODULE_DATA["output"]["mode"]=="timetable_subjects_by_departments" || $MODULE_DATA["output"]["mode"]=="groups")) {
+	/*$EE["head_extra3"][] = "<script type='text/javascript' src='" .HTTP_COMMON_SCRIPTS. "calendar.js'></script>
+	<script type=\"text/javascript\">
+		function showCalendarField(e, fieldObj)
+			{	
+				e.cancelBubble=true;
+				fieldObj.select();
+				lcs(fieldObj, false);
+			}
+	</script>
+	";*/
+}
+
+ if ($MODULE_OUTPUT["allow_peopledit"] && isset($MODULE_DATA["output"]["mode"]) && ($MODULE_DATA["output"]["mode"]=="add_people" || $MODULE_DATA["output"]["mode"]=="edit_people" || $MODULE_DATA["output"]["mode"]=="global_people")) {
+	/*$EE["head_extra3"][] = "	
+		<script type='text/javascript' src='".HTTP_COMMON_SCRIPTS."jquery/jquery.colorbox.js'></script>
+		<link rel='stylesheet' href='".$EE["http_styles"]."colorbox.css' type='text/css' media='screen' />		
+		<script src='".HTTP_COMMON_SCRIPTS."jquery/jquery.Jcrop.min.js'></script>
+		<link rel='stylesheet' href='".$EE["http_styles"]."jquery.Jcrop.css' type='text/css' />
+		<script type='text/javascript'>
+			jQuery(document).ready(function() {
+				function ajax_edit_photo(uri, elem_block) {
+					var form = '<img src=\"'+uri+'\" id=\"cropbox\" /><form class=\"coords_form\" action=\"\\\" method=\"post\" onsubmit=\"return checkCoords();\"><input type=\"hidden\" id=\"pos_x\" name=\"x\" value=\"0\" /><input type=\"hidden\" id=\"pos_y\" name=\"y\" value=\"0\" /><input type=\"hidden\" id=\"width\" name=\"width\" value=\"200\" /><input type=\"hidden\" id=\"height\" name=\"height\" value=\"200\" /><input type=\"submit\" value=\"Сохранить\" /><input type=\"reset\" value=\"Отмена\" /></form>';
+					jQuery.colorbox({
+						html: form,
+						transition: 'none',
+						auto_size: true,
+						close: false,
+						onComplete: function(){
+							var h = jQuery('#cropbox').height();
+							var w = jQuery('#cropbox').width();
+							if(h/w >= 1) {
+								jQuery('#cropbox').width('200px');
+							} else {
+								jQuery('#cropbox').height('200px');
+							}
+							jQuery('#cropbox').Jcrop({
+								aspectRatio: 1,
+								setSelect:   [ 0, 0, 200, 200 ],
+								allowSelect: false,
+								allowResize: false,
+								allowMove: true,
+								onSelect: function(c) {
+									jQuery('#pos_x').val(c.x);
+									jQuery('#pos_y').val(c.y);
+									jQuery('#width').val(c.w);
+									jQuery('#height').val(c.h);
+								}
+							});
+							jQuery('.coords_form input[type=submit]').click(function() {
+								elem_block.find('em').removeClass('hidden');
+								var request = {'module': ".$MODULE_OUTPUT['module_id'].", 'page_uri': '".$Engine->EngineUri()."', 'mode': 'html_code', 'params': 'ajax_edit_photo', 'data': {'pos_x': jQuery('#pos_x').val(), 'pos_y': jQuery('#pos_y').val(), 'width': jQuery('#width').val(), 'height': jQuery('#height').val(), 'img_uri': uri}};
+								jQuery.ajax({
+									type: 'POST',
+									url: '/ajax_mode/', 
+									data: request,
+									success: function( data ) {
+										elem_block.find('img').replaceWith(data);
+										elem_block.find('em').addClass('hidden');
+									}
+								});
+								jQuery.colorbox.close();
+								return false;
+							});
+							jQuery('.coords_form input[type=reset]').click(function() {
+								jQuery.colorbox.close();
+								return false;
+							});
+						}
+					});
+				}
+				if(jQuery('#people_form .user_photo a').length) {
+					jQuery('#people_form .user_photo a').click(function() {
+						var uri = jQuery(this).attr('href');						
+						ajax_edit_photo(uri, jQuery(this).parent());
+						return false;
+					});
+				}
+				if(jQuery('.edit_photo').length) {					
+					jQuery('.edit_photo').click(function() {
+						var uri = jQuery(this).parent().find('.big_photo').attr('href');
+						ajax_edit_photo(uri, jQuery(this).parent());
+						return false;
+					});
+				}
+			
+				if(jQuery('#people_cat_select').length) {
+					jQuery('#people_form').attr('class', 'people_cat_'+jQuery('#people_cat_select').val());
+					if(jQuery('#people_form #responsible input').is(':checked') || jQuery('#people_cat_select').val() == 3) {
+						jQuery('#usergroup').removeClass('hidden');
+					} else {
+						
+					}
+					jQuery('#people_form .add_status input').removeAttr('checked');
+					jQuery('#people_form .add_status .people_cat_'+jQuery('#people_cat_select').val()+':first input').attr({'checked':'checked'});
+						
+					jQuery('#people_cat_select').change(function() {
+						jQuery('#people_form').attr('class', 'people_cat_'+jQuery(this).val());
+						
+						jQuery('#people_form .add_status input').removeAttr('checked');
+						jQuery('#people_form .add_status .people_cat_'+jQuery('#people_cat_select').val()+':first input').attr({'checked':'checked'});
+						if(jQuery('#people_cat_select').val() == 3 || (jQuery('#people_form #responsible input').is(':checked') && jQuery('#people_cat_select').val() == 2)) {
+							jQuery('#usergroup').removeClass('hidden');
+						} else {
+							jQuery('#usergroup').addClass('hidden');
+							jQuery('#people_form #responsible input').removeAttr('checked');
+						}
+					});
+				}
+				
+				jQuery('#people_form #responsible input').click(function() {
+					if(jQuery(this).is(':checked')) {
+						jQuery('#usergroup').removeClass('hidden');
+					} else {
+						jQuery('#usergroup').addClass('hidden');
+					}
+				});
+				jQuery('#department_select dd').click(function() {
+					jQuery('#department_select dd').removeClass('selected');
+					jQuery(this).addClass('selected');
+				}).dblclick(function() {
+					if(!jQuery(this).hasClass('hidden')) {
+						var option = jQuery(this);
+						var option_val = option.attr('id').split('_');
+						option_val = option_val[1];
+						
+						jQuery('#department_list').append('<li><input type=hidden name=department['+option_val+'] value='+option_val+' />'+option.text()+'<em class=\"inline-block\"></em></li>');
+						option.addClass('hidden');
+						option.removeClass('selected');
+					}					
+				});
+				jQuery('#department_list li em').live('click', function(){
+					var dep_val = jQuery(this).parent().find('input').attr('value');
+					var option = jQuery('#department_select #depid_'+dep_val);
+					option.removeClass('hidden');
+					jQuery(this).parent().remove();
+				});
+			});			
+		</script>";*/
+ }
+ 
+
+/* $EE["head_extra3"][] = "<script type=\"text/javascript\">
+ 	var title_changed = false;
+	function change_title(elem, title, descr) { 
+		if (!title_changed) {
+			hrefs = elem.getElementsByTagName('A');
+			for (i=0; i < hrefs.length; i++) {
+				hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /title=(\S+)/, '&title='+encodeURI(title)));
+				if (descr)
+					hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /descr=(\S*)/, '&descr='+encodeURI(descr)));
+			}
+			title_changed = true;
+		}
+	}
+	
+	function set_handlers() {
+			yandexer = document.getElementById('yandex_icons');
+			if (yandexer) {
+				if (yandexer.addEventListener) {
+					yandexer.addEventListener('mouseover', change_title, false);
+				} else {
+					yandexer.attachEvent('onmouseover', change_title);
+				}
+			}
+		} 
+	</script>"; */
+
+/*if($Engine->OperationAllowed(5, "nsau.js.access", -1, $Auth->usergroup_id))
+{
+    if(!function_exists('FormCheck'))
+    {
+	    function FormCheck()
+	    {
+	       global $EE;
+	    $EE["head_extra3"][] = "<script type=\"text/javascript\">
+		
+		
+		var title_changed = false;
+		function change_title(elem, title, descr) { 
+			if (!title_changed) {
+				hrefs = elem.getElementsByTagName('A');
+				for (i=0; i < hrefs.length; i++) {
+					hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /title=(\S+)/, '&title='+encodeURI(title)));
+					if (descr)
+						hrefs[i].setAttribute('href', hrefs[i].getAttribute('href').replace( /descr=(\S*)/, '&descr='+encodeURI(descr)));
+				}
+			title_changed = true;
+			}
+		}
+		
+		function confirmSubmit() {
+	        var agree=confirm(\"Вы уверены, что хотите удалить выбранный элемент?\");
+	        if (agree)
+	            return true ;
+	        else
+	            return false ;
+	    };
+	    
+	    function expulsion() {
+	        var agree=confirm(\"Вы уверены, что хотите отчислить данного студента?\");
+	        if (agree)
+	            return true ;
+	        else
+				return false ;
+	    };
+
+	    function sendform() {
+	        if (document.forms[0].last_name.value == \"\") {
+	            alert('Пожалуйста, введите фамилию студента');
+	            document.add_student.last_name.focus();
+	            return false;
+	        }
+	        if (document.forms[0].first_name.value == \"\") {
+	            alert('Пожалуйста, введите имя студента');
+	            document.add_student.name.focus();
+	            return false;
+	        }
+	        if (document.forms[0].patronymic.value == \"\") {
+	            alert('Пожалуйста, введите отчество студента');
+	            document.add_student.patronymic.focus();
+	            return false;
+	        }
+	        if (document.forms[0].username.value == \"\") {
+	            alert('Пожалуйста, введите имя пользователя студента');
+	            document.add_student.patronymic.focus();
+	            return false;
+	        }
+	        if (document.forms[0].email.value == \"\") {
+	            alert('Пожалуйста, введите E-mail студента');
+	            document.add_student.email.focus();
+	            return false;
+	        }
+	        if (document.forms[0].password1.value == \"\") {
+	            alert('Пожалуйста, введите пароль студента');
+	            document.forms[0].password1.focus();
+	            return false;
+	        }
+	        if (document.forms[0].password1.value != document.forms[0].password2.value) {
+	            alert('Введенные пароли не совпадают');
+	            document.forms[0].password1.focus();
+	            return false;
+	        }
+	        return true;
+	    };
+				
+		function show_fields(num) {
+			if (num==0) {
+				document.getElementById('olduser').style.display = 'none';
+				document.getElementById('newuser').style.display = 'block';
+			}
+			if (num==1) {
+				document.getElementById('olduser').style.display = 'block';
+				document.getElementById('newuser').style.display = 'none';
+			}
+			if (num==2) {
+				document.getElementById('olduser').style.display = 'none';
+				document.getElementById('newuser').style.display = 'none';
+			}
+		}
+	            
+	            function sendform_sbd()
+	            {
+	                
+	                if (document.forms[0].subject.value == 0)
+	                {
+	                    alert('Пожалуйста, выберите предмет');
+	                    document.forms[0].subject.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].faculty.value == 0)
+	                {
+	                    alert('Пожалуйста, выберите факультет');
+	                    document.forms[0].faculty.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].teacher_id.value == 0)
+	                {
+	                    alert('Пожалуйста, выберите преподавателя');
+	                    document.forms[0].teacher_id.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].groups.value == \"\")
+	                {
+	                    alert('Пожалуйста, введите номера групп');
+	                    document.forms[0].groups.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].auditorium.value == \"\")
+	                {
+	                    alert('Пожалуйста, введите номера аудиторий');
+	                    document.forms[0].auditorium.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].rate.value == 0)
+	                {
+	                    alert('Пожалуйста, выберите размер занимаемой ставки');
+	                    document.forms[0].rate.focus();
+	                    return false;
+	                }
+	                return true;
+	            };
+	            
+	            function sendform_graphics()
+	            {
+	                if (document.forms[0].subject_id.value == 0)
+	                {
+	                    alert('Пожалуйста, выберите предмет');
+	                    document.forms[0].subject_id.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].groups.value == \"\")
+	                {
+	                    alert('Пожалуйста, введите номера групп');
+	                    document.forms[0].groups.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].kol_groups.value == \"\")
+	                {
+	                    alert('Пожалуйста, введите количество групп');
+	                    document.forms[0].kol_groups.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].lecture_hours.value == \"\")
+	                {
+	                    alert('Пожалуйста, введите количество лекционных часов');
+	                    document.forms[0].lecture_hours.focus();
+	                    return false;
+	                }
+	                if (document.forms[0].practice_hours.value == \"\")
+	                {
+	                    alert('Пожалуйста, введите количество часов практических занятий');
+	                    document.forms[0].practice_hours.focus();
+	                    return false;
+	                }
+	                return true;    
+	            };
+				</script>";
+		    };
+		    //if(!isset($EE["head_extra3"]))
+	    	{
+	        FormCheck();
+	    	}  
+	    }
+	   
+    }*/
+?>

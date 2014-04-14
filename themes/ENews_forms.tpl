@@ -38,7 +38,7 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 			$array = array();
 			foreach ($MODULE_OUTPUT["messages"]["bad"] as $elem) {
 				if (isset($MODULE_MESSAGES[$elem])) {
-					$array[] = $MODULE_MESSAGES[$elem];
+					$array[] = is_array($MODULE_MESSAGES[$elem]) ? sprintf($MODULE_MESSAGES[$elem][0], $MODULE_MESSAGES[$elem][1]) : $MODULE_MESSAGES[$elem];
 				}
 			}
 			if ($array) {
@@ -46,7 +46,10 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 					echo "<p class=\"message red\">$elem</p>\n";
 				}
 			}
-		} ?>
+      
+      echo '<script>jQuery(document).ready(function($) { var elem; document.querySelector && (elem = document.querySelector(\'p.message\')) && elem.scrollIntoView();});</script>';
+		}    
+    ?>
 	<form action="<?=$EE["unqueried_uri"]?>" method="post" enctype="multipart/form-data" onsubmit="return checkForm(this);">
 		<input type="hidden" name="MAX_FILE_SIZE" value="<?=$MODULE_OUTPUT["input_file_max_size"]?>" />
 <?php
@@ -100,18 +103,18 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 		</p>
 		<p>
 			<label class="block wide"><strong>Заголовок:</strong></label>
-			<input type="text" name="<?=$NODE_ID?>[add_item][title]" value="<?=$data["title"]?>" class="block text" />
-			<small>(заголовок материала, разрешены любые символы, не менее 3-х символов)</small>
+			<input type="text" name="<?=$NODE_ID?>[add_item][title]" value="<?=stripslashes($data["title"]);?>" class="block text" />
+			<small>(заголовок материала, разрешены любые символы, не менее 3-х<?php if($MODULE_OUTPUT["title_max_chars"]) { ?> и не более <?=$MODULE_OUTPUT["title_max_chars"]?><?php } ?> символов)</small>
 		</p>
 		<p>
 			<label><strong>Краткий текст:</strong></label><br />
 			<small>(отображается в&nbsp;анонсах)</small>
-			<textarea name="<?=$NODE_ID?>[add_item][short_text]" cols="20" rows="8" class="common tiny_mce_news"><?=$data["short_text"]?></textarea>
+			<textarea name="<?=$NODE_ID?>[add_item][short_text]" cols="20" rows="8" class="common tiny_mce_news"><?=stripslashes($data["short_text"]);?></textarea>
 		</p>
 		<p>
 			<label><strong>Полный текст:</strong></label><br />
 			<small>(отображается по&nbsp;нажатию ссылки подробной информации)</small>
-			<textarea name="<?=$NODE_ID?>[add_item][full_text]" cols="20" rows="8" class="common tiny_mce_news"><?=$data["full_text"]?></textarea>
+			<textarea name="<?=$NODE_ID?>[add_item][full_text]" cols="20" rows="8" class="common tiny_mce_news"><?=stripslashes($data["full_text"]);?></textarea>
 		</p>
 		<?php if (isset($MODULE_OUTPUT["use_tags"]) && $MODULE_OUTPUT["use_tags"]) {?>
 		<p>
@@ -137,7 +140,7 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 			$array = array();
 			foreach ($MODULE_OUTPUT["messages"]["bad"] as $elem) {
 				if (isset($MODULE_MESSAGES[$elem])) {
-					$array[] = $MODULE_MESSAGES[$elem];
+					$array[] = is_array($MODULE_MESSAGES[$elem]) ? sprintf($MODULE_MESSAGES[$elem][0], $MODULE_MESSAGES[$elem][1]) : $MODULE_MESSAGES[$elem];
 				}
 			}
 			if ($array) {
@@ -145,8 +148,11 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 					echo "<p class=\"message red\">$elem</p>\n";
 				}
 			}
-		} ?>
-	<form action="<?=$EE["unqueried_uri"]?>" method="post" enctype="multipart/form-data" onsubmit="return checkForm(this);">
+          
+    echo '<script>jQuery(document).ready(function($) { var elem; document.querySelector && (elem = document.querySelector(\'p.message\')) && elem.scrollIntoView();});</script>';
+		}
+    ?>
+	<form action="<?=$EE["unqueried_uri"]?>" method="post" enctype="multipart/form-data" onsubmit="return checkForm(this);" name="newsForm">
 		<input type="hidden" name="MAX_FILE_SIZE" value="<?=$MODULE_OUTPUT["input_file_max_size"]?>" />
 		<input type="hidden" name="<?=$NODE_ID?>[save_item][id]" value="<?=$data["id"]?>" />
 <?php
@@ -195,8 +201,8 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 <?php	} ?>
 		<p>
 			<label class="block wide"><strong>Заголовок:</strong></label>
-			<input type="text" name="<?=$NODE_ID?>[save_item][title]" value="<?=$data["title"]?>" class="block text" />
-			<small>(заголовок материала, разрешены любые символы, не менее 3-х символов)</small>
+			<input type="text" name="<?=$NODE_ID?>[save_item][title]" value="<?=stripslashes($data["title"]);?>" class="block text" />
+			<small>(заголовок материала, разрешены любые символы, не менее 3-х<?php if($MODULE_OUTPUT["title_max_chars"]) { ?> и не более <?=$MODULE_OUTPUT["title_max_chars"]?><?php } ?> символов)</small>
 		</p>
 <?php if (!is_null($data["image_data"])) {?>		
 		<p>
@@ -212,12 +218,12 @@ if ($MODULE_OUTPUT["manage_access"] || $MODULE_OUTPUT["privileges"]["cat.create.
 		<p>
 			<label><strong>Краткий текст:</strong></label><br />
 			<small>(отображается в&nbsp;анонсах)</small>
-			<textarea name="<?=$NODE_ID?>[save_item][short_text]" cols="20" rows="8" class="common tiny_mce_news"><?=$data["short_text"]?></textarea>
+			<textarea name="<?=$NODE_ID?>[save_item][short_text]" cols="20" rows="8" class="common tiny_mce_news"><?=stripslashes($data["short_text"]);?></textarea>
 		</p>
 		<p>
 			<label><strong>Полный текст:</strong></label><br />
 			<small>(отображается по&nbsp;нажатию ссылки подробной информации)</small>
-			<textarea name="<?=$NODE_ID?>[save_item][full_text]" cols="20" rows="8" class="common tiny_mce_news"><?=$data["full_text"]?></textarea>
+			<textarea name="<?=$NODE_ID?>[save_item][full_text]" cols="20" rows="8" class="common tiny_mce_news"><?=stripslashes($data["full_text"]);?></textarea>
 		</p>
 		<?php if (isset($MODULE_OUTPUT["use_tags"]) && $MODULE_OUTPUT["use_tags"]) {?>
 		<p>
