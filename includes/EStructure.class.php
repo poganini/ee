@@ -4,8 +4,8 @@
 */
 
 class EStructure
-// version: 3.10
-// date: 2013-11-22
+// version: 3.12
+// date: 2014-05-08
 {
 	var $output;
 	var $module_id;
@@ -318,8 +318,8 @@ class EStructure
 					}					
 				}
 				$ms = $manage_sub;
-				$mfd = $manage_sub;
-				$mp = $manage_sub;
+				$mfd = ($manage_sub && $pid != $_SESSION['cpid']) || $Engine->OperationAllowed(0, "folder.delete", $row->id, $Auth->usergroup_id);
+				$mp = ($manage_sub && $pid != $_SESSION['cpid']) || $Engine->OperationAllowed(0, "folder.props.handle", $row->id, $Auth->usergroup_id);
 								
                 if($Engine->OperationAllowed(0, "folder.view", $row->id, $Auth->usergroup_id) && $Engine->OperationAllowed(0, "folder.list", $row->id, $Auth->usergroup_id)) {
 				    $list[$row->id] = array(
@@ -333,10 +333,10 @@ class EStructure
 					    //"manage_subFolders" => $Engine->OperationAllowed(0, "folder.subFolders.handle", $row->id, $Auth->usergroup_id),
 						"manage_subFolders" => $ms,
 					    "manage_systemProps" => $Engine->OperationAllowed(0, "folder.systemProps.handle", $row->id, $Auth->usergroup_id),
-                        //"manage_props" => $Engine->OperationAllowed(0, "folder.props.handle", $row->id, $Auth->usergroup_id),					
-						"manage_props" => $mp,
-					    //"manage_folder.delete" => $Engine->OperationAllowed(0, "folder.delete", $row->id, $Auth->usergroup_id),
-						"manage_folder.delete" => $mfd,
+                        "manage_props" => $mp,					
+						//"manage_props" => $mp,
+					    "manage_folder.delete" => $mfd,
+						//"manage_folder.delete" => $mfd,
 					    "have_subfolder" => $have_subfolder,
 					    "subitems" => $sublist,
 						"chain" => $chain
@@ -819,6 +819,7 @@ class EStructure
             $DB->AddCondFS("id", "=", $id);
             $res = $DB->Select(1);
             if($row = $DB->FetchAssoc($res)) {
+                $row["uri"] = $Engine->FolderURIbyID($row["id"]);
                 $this->output["folder"] = $row;
 				$DB->SetTable("engine_folders");
 				$DB->AddCondFS("id", "=", $row["pid"]);

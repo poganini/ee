@@ -1,6 +1,6 @@
 <?php
-// version: 3.9
-// date: 2012-05-10
+// version: 3.11
+// date: 2014-05-08
 global $Engine, $Auth, $EE;
 
 //$MODULE_OUTPUT = $MODULE_DATA["output"];
@@ -134,7 +134,7 @@ global $Engine, $Auth, $EE;
 								$displayed++; ?>
 						]</span><br />
 <?php					}				
-						if($item["manage_props"] && $id) {
+						if($item["manage_props"] && $item["manage_folder.delete"] && $id) {
 							//if($item["is_active"]) { ?>
 						<span  class="hide_folder">[<a href='hide/<?=$id?>/<?=$chain?>' title='Не показывать данный раздел посетителям'>скрыть</a>]</span>        
 <?php						//} else { ?>
@@ -188,7 +188,7 @@ global $Engine, $Auth, $EE;
 		</p>
 		<p>
 			Часть адреса:<br />
-			<input name="<?=$NODE_ID?>[save][uri_part]" type="text" id="uri_part" class="input_long" value="<?=$MODULE_OUTPUT["folder"]["uri_part"]?>" />
+			<input name="<?=$NODE_ID?>[save][uri_part]" type="text" id="uri_part" class="input_long" value="<?=$MODULE_OUTPUT["folder"]["uri_part"]?>" /> <a href="<?=$MODULE_OUTPUT["folder"]["uri"]?>" target="_blank">Перейти</a>
 		</p>
 		<p>
 			Родительский раздел:<br />
